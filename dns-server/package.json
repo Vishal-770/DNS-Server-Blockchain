@@ -11,7 +11,9 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "dns-packet": "^5.6.1"
+    "dns-packet": "^5.6.1",
+    "dotenv": "^17.2.2",
+    "thirdweb": "^5.105.42"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
