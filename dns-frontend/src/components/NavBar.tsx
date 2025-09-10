@@ -26,7 +26,11 @@ const Navbar = () => {
 
   useEffect(() => setMounted(true), []);
 
-  const baseLinks: links[] = [];
+  const baseLinks: links[] = [
+    { name: "Home", href: "/" },
+    { name: "About", href: "/about" },
+    { name: "Contact", href: "/contact" },
+  ];
   const navLinks =
     mounted && account
       ? [...baseLinks, { name: "Dashboard", href: `/user/${account.address}` }]
@@ -41,7 +45,7 @@ const Navbar = () => {
           className="flex items-center gap-2 text-xl md:text-2xl font-bold text-primary"
         >
           <Blocks className="h-6 w-6 md:h-8 md:w-8" />
-          Dancing DNS
+          DNS DAO
         </Link>
 
         {/* Center: Desktop Navigation */}
