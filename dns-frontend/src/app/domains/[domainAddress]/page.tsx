@@ -223,7 +223,7 @@ const DomainPage: React.FC = () => {
               <DialogTrigger asChild>
                 <Button
                   variant="outline"
-                  className="flex items-center gap-2 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground shadow-lg hover:shadow-xl transition-all duration-200 w-full sm:w-auto"
+                  className="flex items-center gap-2 border-destructive text-destructive hover:text-destructive-foreground shadow-lg hover:shadow-xl transition-all duration-200 w-full sm:w-auto"
                 >
                   <ArrowRightLeft className="h-4 w-4" />
                   Transfer Domain

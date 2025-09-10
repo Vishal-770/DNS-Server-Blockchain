@@ -290,26 +290,48 @@ server.on("message", async (msg, rinfo) => {
       console.log(
         `🔄 Forwarding ${name} (type ${type}) to upstream ${upstream.address}`
       );
-      const client = dgram.createSocket("udp4");
 
-      client.send(msg, upstream.port, upstream.address);
+      let client;
+      try {
+        client = dgram.createSocket("udp4");
 
-      client.on("message", (upstreamRes) => {
-        server.send(upstreamRes, rinfo.port, rinfo.address);
-        console.log(`📤 Forwarded response for ${name} from upstream`);
-        client.close();
-      });
+        // Set up error handling before sending
+        client.on("error", (err) => {
+          console.error(`❌ Upstream query failed: ${err.message}`);
+          if (!client.destroyed) {
+            client.close();
+          }
+        });
 
-      client.on("error", (err) => {
-        console.error(`❌ Upstream query failed: ${err.message}`);
-        client.close();
-      });
+        // Timeout handling
+        const timeoutId = setTimeout(() => {
+          if (!client.destroyed) {
+            console.log(`⏰ Upstream query timeout for ${name}`);
+            client.close();
+          }
+        }, 5000);
 
-      // Timeout handling
-      setTimeout(() => {
-        client.close();
-        console.log(`⏰ Upstream query timeout for ${name}`);
-      }, 5000);
+        client.on("message", (upstreamRes) => {
+          if (!client.destroyed) {
+            server.send(upstreamRes, rinfo.port, rinfo.address);
+            console.log(`📤 Forwarded response for ${name} from upstream`);
+            client.close();
+          }
+        });
+
+        // Clear timeout if client closes normally
+        client.on("close", () => {
+          clearTimeout(timeoutId);
+        });
+
+        // Send the query
+        client.send(msg, upstream.port, upstream.address);
+      } catch (err) {
+        console.error(`❌ Error creating upstream client: ${err.message}`);
+        if (client && !client.destroyed) {
+          client.close();
+        }
+      }
     }
   } catch (err) {
     console.error("❌ Error processing DNS query:", err);
@@ -330,4 +352,46 @@ server.bind(53, async () => {
   }
 
   console.log("📡 Ready to handle DNS queries!");
+});
+
+// Handle server errors
+server.on("error", (err) => {
+  console.error("❌ DNS Server error:", err);
+  if (err.code === "EADDRINUSE") {
+    console.log(
+      "🔧 Port 53 is already in use. Try running with administrator/sudo privileges."
+    );
+  }
+});
+
+// Graceful shutdown handling
+process.on("SIGINT", () => {
+  console.log("\n⏹️ Received SIGINT, shutting down gracefully...");
+  server.close(() => {
+    console.log("✅ DNS Server stopped successfully");
+    process.exit(0);
+  });
+});
+
+process.on("SIGTERM", () => {
+  console.log("\n⏹️ Received SIGTERM, shutting down gracefully...");
+  server.close(() => {
+    console.log("✅ DNS Server stopped successfully");
+    process.exit(0);
+  });
+});
+
+// Handle uncaught exceptions
+process.on("uncaughtException", (err) => {
+  console.error("❌ Uncaught Exception:", err);
+  server.close(() => {
+    process.exit(1);
+  });
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("❌ Unhandled Rejection at:", promise, "reason:", reason);
+  server.close(() => {
+    process.exit(1);
+  });
 });
