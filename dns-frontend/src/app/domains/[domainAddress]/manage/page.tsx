@@ -168,8 +168,13 @@ const DNSManagementDashboard: React.FC = () => {
     params: [],
   });
 
-  // Note: SRV records might be handled via standard record functions
-  // depending on the contract implementation
+  // Read SRV records
+  const { data: SRVRecords, refetch: refetchSRV } = useReadContract({
+    contract,
+    method:
+      "function getSRV() view returns ((uint256 priority, uint256 weight, uint256 port, string target)[])",
+    params: [],
+  });
 
   const recordTypes = [
     { value: "A", label: "A Record", icon: Globe, description: "IPv4 Address" },
@@ -249,18 +254,16 @@ const DNSManagementDashboard: React.FC = () => {
       } as MXRecord & { type: string });
     });
 
-    // Note: SRV records might need to be handled differently if there's no dedicated getSRV function
-    // For now, treating SRV as standard records
-    // SRVRecords?.forEach((record, index) => {
-    //   records.push({
-    //     priority: Number(record.priority),
-    //     weight: Number(record.weight),
-    //     port: Number(record.port),
-    //     target: record.target,
-    //     index,
-    //     type: "SRV"
-    //   } as SRVRecord & { type: string });
-    // });
+    SRVRecords?.forEach((record, index) => {
+      records.push({
+        priority: Number(record.priority),
+        weight: Number(record.weight),
+        port: Number(record.port),
+        target: record.target,
+        index,
+        type: "SRV",
+      } as SRVRecord & { type: string });
+    });
 
     return records;
   };
@@ -272,7 +275,7 @@ const DNSManagementDashboard: React.FC = () => {
     refetchTXT();
     refetchNS();
     refetchMX();
-    // refetchSRV(); // Comment out if SRV is handled as standard records
+    refetchSRV();
   };
 
   const handleAddRecord = () => {
@@ -378,932 +381,1123 @@ const DNSManagementDashboard: React.FC = () => {
   const allRecords = getAllRecords();
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl mt-20">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            DNS Management
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Manage DNS records for domain: {domainAddress}
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8 space-y-4 lg:space-y-0">
+          <div className="space-y-2">
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">
+              DNS Management
+            </h1>
+            <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 break-all lg:break-normal">
+              Manage DNS records for domain:{" "}
+              <span className="font-mono text-blue-600 dark:text-blue-400">
+                {domainAddress}
+              </span>
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Button
+              onClick={handleAddRecord}
+              className="flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-200"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Add Record</span>
+              <span className="sm:hidden">Add DNS</span>
+            </Button>
+            <Button
+              onClick={handleAddMXRecord}
+              variant="outline"
+              className="flex items-center justify-center gap-2 hover:bg-accent hover:text-accent-foreground"
+            >
+              <Mail className="h-4 w-4" />
+              <span className="hidden sm:inline">Add MX</span>
+              <span className="sm:hidden">MX</span>
+            </Button>
+            <Button
+              onClick={handleAddSRVRecord}
+              variant="outline"
+              className="flex items-center justify-center gap-2 hover:bg-accent hover:text-accent-foreground"
+            >
+              <Database className="h-4 w-4" />
+              <span className="hidden sm:inline">Add SRV</span>
+              <span className="sm:hidden">SRV</span>
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={handleAddRecord} className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Add Record
-          </Button>
-          <Button
-            onClick={handleAddMXRecord}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <Mail className="h-4 w-4" />
-            Add MX
-          </Button>
-          <Button
-            onClick={handleAddSRVRecord}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <Database className="h-4 w-4" />
-            Add SRV
-          </Button>
-        </div>
-      </div>
 
-      {/* Records Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4 mb-8">
-        {recordTypes.map((recordType) => {
-          let count = 0;
-          if (recordType.value === "MX") {
-            count = MXRecords?.length || 0;
-          } else if (recordType.value === "SRV") {
-            // Count SRV records from standard records if treated as standard
-            count = allRecords.filter(
-              (r) => "type" in r && r.type === "SRV"
-            ).length;
-          } else {
-            count = allRecords.filter(
-              (r) => "type" in r && r.type === recordType.value
-            ).length;
-          }
-          const IconComponent = recordType.icon;
+        {/* Records Overview */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3 md:gap-4 mb-8">
+          {recordTypes.map((recordType) => {
+            let count = 0;
+            if (recordType.value === "MX") {
+              count = MXRecords?.length || 0;
+            } else if (recordType.value === "SRV") {
+              count = SRVRecords?.length || 0;
+            } else {
+              count = allRecords.filter(
+                (r) => "type" in r && r.type === recordType.value
+              ).length;
+            }
+            const IconComponent = recordType.icon;
 
-          return (
-            <Card key={recordType.value}>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <IconComponent className="h-5 w-5 text-blue-600" />
+            const getRecordColor = () => {
+              // Use global CSS colors instead of specific color classes
+              return "text-primary";
+            };
+
+            return (
+              <Card
+                key={recordType.value}
+                className="hover:shadow-md transition-shadow duration-200 border-l-4 border-l-transparent hover:border-l-primary"
+              >
+                <CardContent className="p-3 md:p-4">
+                  <div className="flex flex-col space-y-2">
+                    <div className="flex items-center justify-between">
+                      <IconComponent
+                        className={`h-4 w-4 md:h-5 md:w-5 ${getRecordColor()}`}
+                      />
+                      <Badge
+                        variant={count > 0 ? "default" : "secondary"}
+                        className="text-xs"
+                      >
+                        {count}
+                      </Badge>
+                    </div>
                     <div>
-                      <p className="font-semibold">{recordType.label}</p>
-                      <p className="text-xs text-gray-500">
+                      <p className="font-semibold text-xs md:text-sm text-foreground">
+                        {recordType.label}
+                      </p>
+                      <p className="text-xs text-muted-foreground hidden md:block">
                         {recordType.description}
                       </p>
                     </div>
                   </div>
-                  <Badge variant="secondary">{count}</Badge>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
 
-      {/* Records Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            DNS Records
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {allRecords.length === 0 ? (
-            <div className="text-center py-12">
-              <Globe className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                No DNS Records
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
-                Get started by adding your first DNS record
-              </p>
-              <Button onClick={handleAddRecord}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Record
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {allRecords.map((record, recordIndex) => {
-                const getRecordDisplay = () => {
-                  if (
-                    "priority" in record &&
-                    "value" in record &&
-                    !("weight" in record)
-                  ) {
-                    // MX Record
-                    const mxRecord = record as MXRecord & { type: string };
-                    return (
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          Priority: {mxRecord.priority} | Value:{" "}
-                          {mxRecord.value}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          Mail Exchange Record
-                        </p>
-                      </div>
-                    );
-                  } else if (
-                    "priority" in record &&
-                    "weight" in record &&
-                    "port" in record &&
-                    "target" in record
-                  ) {
-                    // SRV Record
-                    const srvRecord = record as SRVRecord & { type: string };
-                    return (
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          {srvRecord.priority}/{srvRecord.weight}/
-                          {srvRecord.port} {srvRecord.target}
-                        </p>
-                        <p className="text-sm text-gray-500">Service Record</p>
-                      </div>
-                    );
-                  } else {
-                    // Standard DNS Record
-                    const dnsRecord = record as DNSRecord;
-                    return (
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          {dnsRecord.value}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {
-                            recordTypes.find(
-                              (rt) => rt.value === dnsRecord.type
-                            )?.description
-                          }
-                        </p>
-                      </div>
-                    );
-                  }
-                };
-
-                const getRecordType = () => {
-                  if (
-                    "priority" in record &&
-                    "value" in record &&
-                    !("weight" in record)
-                  ) {
-                    return "MX";
-                  } else if (
-                    "priority" in record &&
-                    "weight" in record &&
-                    "port" in record &&
-                    "target" in record
-                  ) {
-                    return "SRV";
-                  } else {
-                    return (record as DNSRecord).type;
-                  }
-                };
-
-                const recordType = getRecordType();
-
-                return (
-                  <div
-                    key={`${recordType}-${record.index}-${recordIndex}`}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        {getRecordIcon(recordType)}
-                        <Badge variant="outline">{recordType}</Badge>
-                      </div>
-                      {getRecordDisplay()}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEditRecord(record)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDeleteRecord(record)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+        {/* Records Table */}
+        <Card className="shadow-lg border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+          <CardHeader className="border-b border-gray-200 dark:border-gray-700">
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <Shield className="h-5 w-5 text-blue-600" />
+              DNS Records
+              {allRecords.length > 0 && (
+                <Badge variant="secondary" className="ml-auto">
+                  {allRecords.length} total
+                </Badge>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {allRecords.length === 0 ? (
+              <div className="text-center py-16 px-4">
+                <div className="max-w-sm mx-auto">
+                  <Globe className="h-16 w-16 text-gray-400 mx-auto mb-6" />
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
+                    No DNS Records
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-6 text-sm">
+                    Get started by adding your first DNS record to manage your
+                    domain
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                    <Button
+                      onClick={handleAddRecord}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add DNS Record
+                    </Button>
+                    <Button onClick={handleAddMXRecord} variant="outline">
+                      <Mail className="h-4 w-4 mr-2" />
+                      Add MX Record
+                    </Button>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Add Record Dialog */}
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Add DNS Record</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="recordType">Record Type</Label>
-              <Select
-                value={newRecord.type}
-                onValueChange={(value) =>
-                  setNewRecord({ ...newRecord, type: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {recordTypes
-                    .filter(
-                      (type) => type.value !== "MX" && type.value !== "SRV"
-                    )
-                    .map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        <div className="flex items-center gap-2">
-                          <type.icon className="h-4 w-4" />
-                          {type.label}
+                </div>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                {allRecords.map((record, recordIndex) => {
+                  const getRecordDisplay = () => {
+                    if (
+                      "priority" in record &&
+                      "value" in record &&
+                      !("weight" in record)
+                    ) {
+                      // MX Record
+                      const mxRecord = record as MXRecord & { type: string };
+                      return (
+                        <div className="space-y-1">
+                          <p className="font-medium text-gray-900 dark:text-white text-sm md:text-base">
+                            <span className="text-orange-600 dark:text-orange-400 font-mono">
+                              {mxRecord.priority}
+                            </span>{" "}
+                            <span className="break-all">{mxRecord.value}</span>
+                          </p>
+                          <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">
+                            Mail Exchange Record
+                          </p>
                         </div>
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="recordValue">Record Value</Label>
-              <Input
-                id="recordValue"
-                placeholder="Enter record value"
-                value={newRecord.value}
-                onChange={(e) =>
-                  setNewRecord({ ...newRecord, value: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter password"
-                value={newRecord.password}
-                onChange={(e) =>
-                  setNewRecord({ ...newRecord, password: e.target.value })
-                }
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={resetAddForm}>
-              Cancel
-            </Button>
-            <TransactionButton
-              transaction={() =>
-                prepareContractCall({
-                  contract,
-                  method:
-                    "function addRecord(string recordType, string value, string _password)",
-                  params: [newRecord.type, newRecord.value, newRecord.password],
-                })
-              }
-              onTransactionConfirmed={() => {
-                toast.success("DNS record added successfully");
-                resetAddForm();
-                refetchAllRecords();
-              }}
-              onError={(error) => {
-                toast.error("Failed to add DNS record");
-                console.error(error);
-              }}
-              disabled={!newRecord.value || !newRecord.password}
-            >
-              Add Record
-            </TransactionButton>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                      );
+                    } else if (
+                      "priority" in record &&
+                      "weight" in record &&
+                      "port" in record &&
+                      "target" in record
+                    ) {
+                      // SRV Record
+                      const srvRecord = record as SRVRecord & { type: string };
+                      return (
+                        <div className="space-y-1">
+                          <p className="font-medium text-gray-900 dark:text-white text-sm md:text-base">
+                            <span className="text-purple-600 dark:text-purple-400 font-mono">
+                              {srvRecord.priority}/{srvRecord.weight}/
+                              {srvRecord.port}
+                            </span>{" "}
+                            <span className="break-all">
+                              {srvRecord.target}
+                            </span>
+                          </p>
+                          <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">
+                            Service Record
+                          </p>
+                        </div>
+                      );
+                    } else {
+                      // Standard DNS Record
+                      const dnsRecord = record as DNSRecord;
+                      return (
+                        <div className="space-y-1">
+                          <p className="font-medium text-gray-900 dark:text-white text-sm md:text-base break-all">
+                            {dnsRecord.value}
+                          </p>
+                          <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">
+                            {
+                              recordTypes.find(
+                                (rt) => rt.value === dnsRecord.type
+                              )?.description
+                            }
+                          </p>
+                        </div>
+                      );
+                    }
+                  };
 
-      {/* Edit Record Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit DNS Record</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Record Type</Label>
-              <div className="flex items-center gap-2 p-2 border rounded">
-                {getRecordIcon(editRecord.type)}
-                <Badge variant="outline">{editRecord.type}</Badge>
+                  const getRecordType = () => {
+                    if (
+                      "priority" in record &&
+                      "value" in record &&
+                      !("weight" in record)
+                    ) {
+                      return "MX";
+                    } else if (
+                      "priority" in record &&
+                      "weight" in record &&
+                      "port" in record &&
+                      "target" in record
+                    ) {
+                      return "SRV";
+                    } else {
+                      return (record as DNSRecord).type;
+                    }
+                  };
+
+                  const recordType = getRecordType();
+
+                  const getTypeColor = (type: string) => {
+                    switch (type) {
+                      case "A":
+                        return "bg-chart-4/20 text-chart-4 border-chart-4/30";
+                      case "AAAA":
+                        return "bg-chart-2/20 text-chart-2 border-chart-2/30";
+                      case "CNAME":
+                        return "bg-chart-3/20 text-chart-3 border-chart-3/30";
+                      case "TXT":
+                        return "bg-chart-1/20 text-chart-1 border-chart-1/30";
+                      case "NS":
+                        return "bg-chart-5/20 text-chart-5 border-chart-5/30";
+                      case "MX":
+                        return "bg-accent/50 text-accent-foreground border-accent";
+                      case "SRV":
+                        return "bg-secondary/50 text-secondary-foreground border-secondary";
+                      default:
+                        return "bg-muted/50 text-muted-foreground border-border";
+                    }
+                  };
+
+                  return (
+                    <div
+                      key={`${recordType}-${record.index}-${recordIndex}`}
+                      className="flex flex-col md:flex-row md:items-center md:justify-between p-4 md:p-6 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-200 space-y-3 md:space-y-0"
+                    >
+                      <div className="flex items-start md:items-center gap-3 md:gap-4 flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {getRecordIcon(recordType)}
+                          <Badge
+                            variant="outline"
+                            className={`text-xs font-medium ${getTypeColor(
+                              recordType
+                            )}`}
+                          >
+                            {recordType}
+                          </Badge>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          {getRecordDisplay()}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0 md:ml-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditRecord(record)}
+                          className="hover:bg-accent hover:text-accent-foreground"
+                        >
+                          <Edit className="h-4 w-4" />
+                          <span className="hidden sm:ml-1 sm:inline">Edit</span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteRecord(record)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 hover:border-red-200 dark:text-red-400 dark:hover:bg-red-900/20"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span className="hidden sm:ml-1 sm:inline">
+                            Delete
+                          </span>
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Add Record Dialog */}
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader className="space-y-3">
+              <DialogTitle className="text-xl font-semibold flex items-center gap-3">
+                <Plus className="h-5 w-5 text-primary" />
+                Add DNS Record
+              </DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                Create a new DNS record for your domain
+              </p>
+            </DialogHeader>
+            <div className="space-y-6 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="recordType" className="text-sm font-medium">
+                  Record Type
+                </Label>
+                <Select
+                  value={newRecord.type}
+                  onValueChange={(value) =>
+                    setNewRecord({ ...newRecord, type: value })
+                  }
+                >
+                  <SelectTrigger className="h-11">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {recordTypes
+                      .filter(
+                        (type) => type.value !== "MX" && type.value !== "SRV"
+                      )
+                      .map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          <div className="flex items-center gap-3 py-1">
+                            <type.icon className="h-4 w-4 text-muted-foreground" />
+                            <div>
+                              <div className="font-medium">{type.label}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {type.description}
+                              </div>
+                            </div>
+                          </div>
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="recordValue" className="text-sm font-medium">
+                  Record Value
+                </Label>
+                <Input
+                  id="recordValue"
+                  placeholder="Enter record value (e.g., 192.168.1.1)"
+                  value={newRecord.value}
+                  onChange={(e) =>
+                    setNewRecord({ ...newRecord, value: e.target.value })
+                  }
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-sm font-medium">
+                  Password
+                </Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Enter your domain password"
+                  value={newRecord.password}
+                  onChange={(e) =>
+                    setNewRecord({ ...newRecord, password: e.target.value })
+                  }
+                  className="h-11"
+                />
               </div>
             </div>
-            <div>
-              <Label htmlFor="editRecordValue">Record Value</Label>
-              <Input
-                id="editRecordValue"
-                placeholder="Enter record value"
-                value={editRecord.value}
-                onChange={(e) =>
-                  setEditRecord({ ...editRecord, value: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <Label htmlFor="editPassword">Password</Label>
-              <Input
-                id="editPassword"
-                type="password"
-                placeholder="Enter password"
-                value={editRecord.password}
-                onChange={(e) =>
-                  setEditRecord({ ...editRecord, password: e.target.value })
-                }
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={resetEditForm}>
-              Cancel
-            </Button>
-            <TransactionButton
-              transaction={() =>
-                prepareContractCall({
-                  contract,
-                  method:
-                    "function updateRecord(string recordType, uint256 index, string newValue, string _password)",
-                  params: [
-                    editRecord.type,
-                    BigInt(editRecord.index),
-                    editRecord.value,
-                    editRecord.password,
-                  ],
-                })
-              }
-              onTransactionConfirmed={() => {
-                toast.success("DNS record updated successfully");
-                resetEditForm();
-                refetchAllRecords();
-              }}
-              onError={(error) => {
-                toast.error("Failed to update DNS record");
-                console.error(error);
-              }}
-              disabled={!editRecord.value || !editRecord.password}
-            >
-              Update Record
-            </TransactionButton>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add MX Record Dialog */}
-      <Dialog open={isMXDialogOpen} onOpenChange={setIsMXDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5" />
-              Add MX Record
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="mxPriority">Priority</Label>
-              <Input
-                id="mxPriority"
-                type="number"
-                placeholder="e.g., 10"
-                value={newMXRecord.priority}
-                onChange={(e) =>
-                  setNewMXRecord({
-                    ...newMXRecord,
-                    priority: Number(e.target.value),
+            <DialogFooter className="gap-3 pt-4">
+              <Button
+                variant="outline"
+                onClick={resetAddForm}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <TransactionButton
+                className="flex-1"
+                transaction={() =>
+                  prepareContractCall({
+                    contract,
+                    method:
+                      "function addRecord(string recordType, string value, string _password)",
+                    params: [
+                      newRecord.type,
+                      newRecord.value,
+                      newRecord.password,
+                    ],
                   })
                 }
-              />
-            </div>
-            <div>
-              <Label htmlFor="mxValue">Mail Server</Label>
-              <Input
-                id="mxValue"
-                placeholder="e.g., mail.example.com"
-                value={newMXRecord.value}
-                onChange={(e) =>
-                  setNewMXRecord({ ...newMXRecord, value: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <Label htmlFor="mxPassword">Password</Label>
-              <Input
-                id="mxPassword"
-                type="password"
-                placeholder="Enter password"
-                value={newMXRecord.password}
-                onChange={(e) =>
-                  setNewMXRecord({ ...newMXRecord, password: e.target.value })
-                }
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={resetMXForm}>
-              Cancel
-            </Button>
-            <TransactionButton
-              transaction={() =>
-                prepareContractCall({
-                  contract,
-                  method:
-                    "function addMX(uint256 priority, string value, string _password)",
-                  params: [
-                    BigInt(newMXRecord.priority),
-                    newMXRecord.value,
-                    newMXRecord.password,
-                  ],
-                })
-              }
-              onTransactionConfirmed={() => {
-                toast.success("MX record added successfully");
-                resetMXForm();
-                refetchAllRecords();
-              }}
-              onError={(error) => {
-                toast.error("Failed to add MX record");
-                console.error(error);
-              }}
-              disabled={!newMXRecord.value || !newMXRecord.password}
-            >
-              Add MX Record
-            </TransactionButton>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                onTransactionConfirmed={() => {
+                  toast.success("DNS record added successfully");
+                  resetAddForm();
+                  refetchAllRecords();
+                }}
+                onError={(error) => {
+                  toast.error("Failed to add DNS record");
+                  console.error(error);
+                }}
+                disabled={!newRecord.value || !newRecord.password}
+              >
+                Add Record
+              </TransactionButton>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
-      {/* Add SRV Record Dialog */}
-      <Dialog open={isSRVDialogOpen} onOpenChange={setIsSRVDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Database className="h-5 w-5" />
-              Add SRV Record
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="srvPriority">Priority</Label>
+        {/* Edit Record Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader className="space-y-3">
+              <DialogTitle className="text-xl font-semibold flex items-center gap-3">
+                <Edit className="h-5 w-5 text-primary" />
+                Edit DNS Record
+              </DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                Update the DNS record for your domain
+              </p>
+            </DialogHeader>
+            <div className="space-y-6 py-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Record Type</Label>
+                <div className="flex items-center gap-3 p-3 border rounded-lg bg-muted/50">
+                  {getRecordIcon(editRecord.type)}
+                  <Badge variant="outline" className="text-sm">
+                    {editRecord.type}
+                  </Badge>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label
+                  htmlFor="editRecordValue"
+                  className="text-sm font-medium"
+                >
+                  Record Value
+                </Label>
                 <Input
-                  id="srvPriority"
+                  id="editRecordValue"
+                  placeholder="Enter record value"
+                  value={editRecord.value}
+                  onChange={(e) =>
+                    setEditRecord({ ...editRecord, value: e.target.value })
+                  }
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editPassword" className="text-sm font-medium">
+                  Password
+                </Label>
+                <Input
+                  id="editPassword"
+                  type="password"
+                  placeholder="Enter your domain password"
+                  value={editRecord.password}
+                  onChange={(e) =>
+                    setEditRecord({ ...editRecord, password: e.target.value })
+                  }
+                  className="h-11"
+                />
+              </div>
+            </div>
+            <DialogFooter className="gap-3 pt-4">
+              <Button
+                variant="outline"
+                onClick={resetEditForm}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <TransactionButton
+                className="flex-1"
+                transaction={() =>
+                  prepareContractCall({
+                    contract,
+                    method:
+                      "function updateRecord(string recordType, uint256 index, string newValue, string _password)",
+                    params: [
+                      editRecord.type,
+                      BigInt(editRecord.index),
+                      editRecord.value,
+                      editRecord.password,
+                    ],
+                  })
+                }
+                onTransactionConfirmed={() => {
+                  toast.success("DNS record updated successfully");
+                  resetEditForm();
+                  refetchAllRecords();
+                }}
+                onError={(error) => {
+                  toast.error("Failed to update DNS record");
+                  console.error(error);
+                }}
+                disabled={!editRecord.value || !editRecord.password}
+              >
+                Update Record
+              </TransactionButton>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add MX Record Dialog */}
+        <Dialog open={isMXDialogOpen} onOpenChange={setIsMXDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader className="space-y-3">
+              <DialogTitle className="text-xl font-semibold flex items-center gap-3">
+                <Mail className="h-5 w-5 text-primary" />
+                Add MX Record
+              </DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                Configure mail exchange records for your domain
+              </p>
+            </DialogHeader>
+            <div className="space-y-6 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="mxPriority" className="text-sm font-medium">
+                  Priority
+                </Label>
+                <Input
+                  id="mxPriority"
                   type="number"
                   placeholder="e.g., 10"
-                  value={newSRVRecord.priority}
+                  value={newMXRecord.priority}
+                  onChange={(e) =>
+                    setNewMXRecord({
+                      ...newMXRecord,
+                      priority: Number(e.target.value),
+                    })
+                  }
+                  className="h-11"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Lower numbers have higher priority
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="mxValue" className="text-sm font-medium">
+                  Mail Server
+                </Label>
+                <Input
+                  id="mxValue"
+                  placeholder="e.g., mail.example.com"
+                  value={newMXRecord.value}
+                  onChange={(e) =>
+                    setNewMXRecord({ ...newMXRecord, value: e.target.value })
+                  }
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="mxPassword" className="text-sm font-medium">
+                  Password
+                </Label>
+                <Input
+                  id="mxPassword"
+                  type="password"
+                  placeholder="Enter your domain password"
+                  value={newMXRecord.password}
+                  onChange={(e) =>
+                    setNewMXRecord({ ...newMXRecord, password: e.target.value })
+                  }
+                  className="h-11"
+                />
+              </div>
+            </div>
+            <DialogFooter className="gap-3 pt-4">
+              <Button
+                variant="outline"
+                onClick={resetMXForm}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <TransactionButton
+                className="flex-1"
+                transaction={() =>
+                  prepareContractCall({
+                    contract,
+                    method:
+                      "function addMX(uint256 priority, string value, string _password)",
+                    params: [
+                      BigInt(newMXRecord.priority),
+                      newMXRecord.value,
+                      newMXRecord.password,
+                    ],
+                  })
+                }
+                onTransactionConfirmed={() => {
+                  toast.success("MX record added successfully");
+                  resetMXForm();
+                  refetchAllRecords();
+                }}
+                onError={(error) => {
+                  toast.error("Failed to add MX record");
+                  console.error(error);
+                }}
+                disabled={!newMXRecord.value || !newMXRecord.password}
+              >
+                Add MX Record
+              </TransactionButton>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add SRV Record Dialog */}
+        <Dialog open={isSRVDialogOpen} onOpenChange={setIsSRVDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader className="space-y-3">
+              <DialogTitle className="text-xl font-semibold flex items-center gap-3">
+                <Database className="h-5 w-5 text-primary" />
+                Add SRV Record
+              </DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                Configure service records for your domain
+              </p>
+            </DialogHeader>
+            <div className="space-y-6 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="srvPriority" className="text-sm font-medium">
+                    Priority
+                  </Label>
+                  <Input
+                    id="srvPriority"
+                    type="number"
+                    placeholder="e.g., 10"
+                    value={newSRVRecord.priority}
+                    onChange={(e) =>
+                      setNewSRVRecord({
+                        ...newSRVRecord,
+                        priority: Number(e.target.value),
+                      })
+                    }
+                    className="h-11"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="srvWeight" className="text-sm font-medium">
+                    Weight
+                  </Label>
+                  <Input
+                    id="srvWeight"
+                    type="number"
+                    placeholder="e.g., 20"
+                    value={newSRVRecord.weight}
+                    onChange={(e) =>
+                      setNewSRVRecord({
+                        ...newSRVRecord,
+                        weight: Number(e.target.value),
+                      })
+                    }
+                    className="h-11"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="srvPort" className="text-sm font-medium">
+                  Port
+                </Label>
+                <Input
+                  id="srvPort"
+                  type="number"
+                  placeholder="e.g., 80"
+                  value={newSRVRecord.port}
                   onChange={(e) =>
                     setNewSRVRecord({
                       ...newSRVRecord,
+                      port: Number(e.target.value),
+                    })
+                  }
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="srvTarget" className="text-sm font-medium">
+                  Target
+                </Label>
+                <Input
+                  id="srvTarget"
+                  placeholder="e.g., server.example.com"
+                  value={newSRVRecord.target}
+                  onChange={(e) =>
+                    setNewSRVRecord({ ...newSRVRecord, target: e.target.value })
+                  }
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="srvPassword" className="text-sm font-medium">
+                  Password
+                </Label>
+                <Input
+                  id="srvPassword"
+                  type="password"
+                  placeholder="Enter your domain password"
+                  value={newSRVRecord.password}
+                  onChange={(e) =>
+                    setNewSRVRecord({
+                      ...newSRVRecord,
+                      password: e.target.value,
+                    })
+                  }
+                  className="h-11"
+                />
+              </div>
+            </div>
+            <DialogFooter className="gap-3 pt-4">
+              <Button
+                variant="outline"
+                onClick={resetSRVForm}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <TransactionButton
+                className="flex-1"
+                transaction={() =>
+                  prepareContractCall({
+                    contract,
+                    method:
+                      "function addSRV(uint256 priority, uint256 weight, uint256 port, string target, string _password)",
+                    params: [
+                      BigInt(newSRVRecord.priority),
+                      BigInt(newSRVRecord.weight),
+                      BigInt(newSRVRecord.port),
+                      newSRVRecord.target,
+                      newSRVRecord.password,
+                    ],
+                  })
+                }
+                onTransactionConfirmed={() => {
+                  toast.success("SRV record added successfully");
+                  resetSRVForm();
+                  refetchAllRecords();
+                }}
+                onError={(error) => {
+                  toast.error("Failed to add SRV record");
+                  console.error(error);
+                }}
+                disabled={!newSRVRecord.target || !newSRVRecord.password}
+              >
+                Add SRV Record
+              </TransactionButton>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit MX Record Dialog */}
+        <Dialog open={isEditMXDialogOpen} onOpenChange={setIsEditMXDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Mail className="h-5 w-5" />
+                Edit MX Record
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="editMxPriority">Priority</Label>
+                <Input
+                  id="editMxPriority"
+                  type="number"
+                  placeholder="e.g., 10"
+                  value={editMXRecord.priority}
+                  onChange={(e) =>
+                    setEditMXRecord({
+                      ...editMXRecord,
                       priority: Number(e.target.value),
                     })
                   }
                 />
               </div>
               <div>
-                <Label htmlFor="srvWeight">Weight</Label>
+                <Label htmlFor="editMxValue">Mail Server</Label>
                 <Input
-                  id="srvWeight"
-                  type="number"
-                  placeholder="e.g., 20"
-                  value={newSRVRecord.weight}
+                  id="editMxValue"
+                  placeholder="e.g., mail.example.com"
+                  value={editMXRecord.value}
                   onChange={(e) =>
-                    setNewSRVRecord({
-                      ...newSRVRecord,
-                      weight: Number(e.target.value),
+                    setEditMXRecord({ ...editMXRecord, value: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <Label htmlFor="editMxPassword">Password</Label>
+                <Input
+                  id="editMxPassword"
+                  type="password"
+                  placeholder="Enter password"
+                  value={editMXRecord.password}
+                  onChange={(e) =>
+                    setEditMXRecord({
+                      ...editMXRecord,
+                      password: e.target.value,
                     })
                   }
                 />
               </div>
             </div>
-            <div>
-              <Label htmlFor="srvPort">Port</Label>
-              <Input
-                id="srvPort"
-                type="number"
-                placeholder="e.g., 80"
-                value={newSRVRecord.port}
-                onChange={(e) =>
-                  setNewSRVRecord({
-                    ...newSRVRecord,
-                    port: Number(e.target.value),
+            <DialogFooter>
+              <Button variant="outline" onClick={resetEditMXForm}>
+                Cancel
+              </Button>
+              <TransactionButton
+                transaction={() =>
+                  prepareContractCall({
+                    contract,
+                    method:
+                      "function updateMX(uint256 index, uint256 priority, string value, string _password)",
+                    params: [
+                      BigInt(editMXRecord.index),
+                      BigInt(editMXRecord.priority),
+                      editMXRecord.value,
+                      editMXRecord.password,
+                    ],
                   })
                 }
-              />
-            </div>
-            <div>
-              <Label htmlFor="srvTarget">Target</Label>
-              <Input
-                id="srvTarget"
-                placeholder="e.g., server.example.com"
-                value={newSRVRecord.target}
-                onChange={(e) =>
-                  setNewSRVRecord({ ...newSRVRecord, target: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <Label htmlFor="srvPassword">Password</Label>
-              <Input
-                id="srvPassword"
-                type="password"
-                placeholder="Enter password"
-                value={newSRVRecord.password}
-                onChange={(e) =>
-                  setNewSRVRecord({ ...newSRVRecord, password: e.target.value })
-                }
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={resetSRVForm}>
-              Cancel
-            </Button>
-            <TransactionButton
-              transaction={() =>
-                prepareContractCall({
-                  contract,
-                  method:
-                    "function addSRV(uint256 priority, uint256 weight, uint256 port, string target, string _password)",
-                  params: [
-                    BigInt(newSRVRecord.priority),
-                    BigInt(newSRVRecord.weight),
-                    BigInt(newSRVRecord.port),
-                    newSRVRecord.target,
-                    newSRVRecord.password,
-                  ],
-                })
-              }
-              onTransactionConfirmed={() => {
-                toast.success("SRV record added successfully");
-                resetSRVForm();
-                refetchAllRecords();
-              }}
-              onError={(error) => {
-                toast.error("Failed to add SRV record");
-                console.error(error);
-              }}
-              disabled={!newSRVRecord.target || !newSRVRecord.password}
-            >
-              Add SRV Record
-            </TransactionButton>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                onTransactionConfirmed={() => {
+                  toast.success("MX record updated successfully");
+                  resetEditMXForm();
+                  refetchAllRecords();
+                }}
+                onError={(error) => {
+                  toast.error("Failed to update MX record");
+                  console.error(error);
+                }}
+                disabled={!editMXRecord.value || !editMXRecord.password}
+              >
+                Update MX Record
+              </TransactionButton>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
-      {/* Edit MX Record Dialog */}
-      <Dialog open={isEditMXDialogOpen} onOpenChange={setIsEditMXDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5" />
-              Edit MX Record
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="editMxPriority">Priority</Label>
-              <Input
-                id="editMxPriority"
-                type="number"
-                placeholder="e.g., 10"
-                value={editMXRecord.priority}
-                onChange={(e) =>
-                  setEditMXRecord({
-                    ...editMXRecord,
-                    priority: Number(e.target.value),
-                  })
-                }
-              />
-            </div>
-            <div>
-              <Label htmlFor="editMxValue">Mail Server</Label>
-              <Input
-                id="editMxValue"
-                placeholder="e.g., mail.example.com"
-                value={editMXRecord.value}
-                onChange={(e) =>
-                  setEditMXRecord({ ...editMXRecord, value: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <Label htmlFor="editMxPassword">Password</Label>
-              <Input
-                id="editMxPassword"
-                type="password"
-                placeholder="Enter password"
-                value={editMXRecord.password}
-                onChange={(e) =>
-                  setEditMXRecord({ ...editMXRecord, password: e.target.value })
-                }
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={resetEditMXForm}>
-              Cancel
-            </Button>
-            <TransactionButton
-              transaction={() =>
-                prepareContractCall({
-                  contract,
-                  method:
-                    "function updateMX(uint256 index, uint256 priority, string value, string _password)",
-                  params: [
-                    BigInt(editMXRecord.index),
-                    BigInt(editMXRecord.priority),
-                    editMXRecord.value,
-                    editMXRecord.password,
-                  ],
-                })
-              }
-              onTransactionConfirmed={() => {
-                toast.success("MX record updated successfully");
-                resetEditMXForm();
-                refetchAllRecords();
-              }}
-              onError={(error) => {
-                toast.error("Failed to update MX record");
-                console.error(error);
-              }}
-              disabled={!editMXRecord.value || !editMXRecord.password}
-            >
-              Update MX Record
-            </TransactionButton>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit SRV Record Dialog */}
-      <Dialog open={isEditSRVDialogOpen} onOpenChange={setIsEditSRVDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Database className="h-5 w-5" />
-              Edit SRV Record
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+        {/* Edit SRV Record Dialog */}
+        <Dialog
+          open={isEditSRVDialogOpen}
+          onOpenChange={setIsEditSRVDialogOpen}
+        >
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Database className="h-5 w-5" />
+                Edit SRV Record
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="editSrvPriority">Priority</Label>
+                  <Input
+                    id="editSrvPriority"
+                    type="number"
+                    placeholder="e.g., 10"
+                    value={editSRVRecord.priority}
+                    onChange={(e) =>
+                      setEditSRVRecord({
+                        ...editSRVRecord,
+                        priority: Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="editSrvWeight">Weight</Label>
+                  <Input
+                    id="editSrvWeight"
+                    type="number"
+                    placeholder="e.g., 20"
+                    value={editSRVRecord.weight}
+                    onChange={(e) =>
+                      setEditSRVRecord({
+                        ...editSRVRecord,
+                        weight: Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+              </div>
               <div>
-                <Label htmlFor="editSrvPriority">Priority</Label>
+                <Label htmlFor="editSrvPort">Port</Label>
                 <Input
-                  id="editSrvPriority"
+                  id="editSrvPort"
                   type="number"
-                  placeholder="e.g., 10"
-                  value={editSRVRecord.priority}
+                  placeholder="e.g., 80"
+                  value={editSRVRecord.port}
                   onChange={(e) =>
                     setEditSRVRecord({
                       ...editSRVRecord,
-                      priority: Number(e.target.value),
+                      port: Number(e.target.value),
                     })
                   }
                 />
               </div>
               <div>
-                <Label htmlFor="editSrvWeight">Weight</Label>
+                <Label htmlFor="editSrvTarget">Target</Label>
                 <Input
-                  id="editSrvWeight"
-                  type="number"
-                  placeholder="e.g., 20"
-                  value={editSRVRecord.weight}
+                  id="editSrvTarget"
+                  placeholder="e.g., server.example.com"
+                  value={editSRVRecord.target}
                   onChange={(e) =>
                     setEditSRVRecord({
                       ...editSRVRecord,
-                      weight: Number(e.target.value),
+                      target: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <Label htmlFor="editSrvPassword">Password</Label>
+                <Input
+                  id="editSrvPassword"
+                  type="password"
+                  placeholder="Enter password"
+                  value={editSRVRecord.password}
+                  onChange={(e) =>
+                    setEditSRVRecord({
+                      ...editSRVRecord,
+                      password: e.target.value,
                     })
                   }
                 />
               </div>
             </div>
-            <div>
-              <Label htmlFor="editSrvPort">Port</Label>
-              <Input
-                id="editSrvPort"
-                type="number"
-                placeholder="e.g., 80"
-                value={editSRVRecord.port}
-                onChange={(e) =>
-                  setEditSRVRecord({
-                    ...editSRVRecord,
-                    port: Number(e.target.value),
+            <DialogFooter>
+              <Button variant="outline" onClick={resetEditSRVForm}>
+                Cancel
+              </Button>
+              <TransactionButton
+                transaction={() =>
+                  prepareContractCall({
+                    contract,
+                    method:
+                      "function updateSRV(uint256 index, uint256 priority, uint256 weight, uint256 port, string target, string _password)",
+                    params: [
+                      BigInt(editSRVRecord.index),
+                      BigInt(editSRVRecord.priority),
+                      BigInt(editSRVRecord.weight),
+                      BigInt(editSRVRecord.port),
+                      editSRVRecord.target,
+                      editSRVRecord.password,
+                    ],
                   })
                 }
-              />
-            </div>
-            <div>
-              <Label htmlFor="editSrvTarget">Target</Label>
-              <Input
-                id="editSrvTarget"
-                placeholder="e.g., server.example.com"
-                value={editSRVRecord.target}
-                onChange={(e) =>
-                  setEditSRVRecord({ ...editSRVRecord, target: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <Label htmlFor="editSrvPassword">Password</Label>
-              <Input
-                id="editSrvPassword"
-                type="password"
-                placeholder="Enter password"
-                value={editSRVRecord.password}
-                onChange={(e) =>
-                  setEditSRVRecord({
-                    ...editSRVRecord,
-                    password: e.target.value,
-                  })
-                }
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={resetEditSRVForm}>
-              Cancel
-            </Button>
-            <TransactionButton
-              transaction={() =>
-                prepareContractCall({
-                  contract,
-                  method:
-                    "function updateSRV(uint256 index, uint256 priority, uint256 weight, uint256 port, string target, string _password)",
-                  params: [
-                    BigInt(editSRVRecord.index),
-                    BigInt(editSRVRecord.priority),
-                    BigInt(editSRVRecord.weight),
-                    BigInt(editSRVRecord.port),
-                    editSRVRecord.target,
-                    editSRVRecord.password,
-                  ],
-                })
-              }
-              onTransactionConfirmed={() => {
-                toast.success("SRV record updated successfully");
-                resetEditSRVForm();
-                refetchAllRecords();
-              }}
-              onError={(error) => {
-                toast.error("Failed to update SRV record");
-                console.error(error);
-              }}
-              disabled={!editSRVRecord.target || !editSRVRecord.password}
-            >
-              Update SRV Record
-            </TransactionButton>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                onTransactionConfirmed={() => {
+                  toast.success("SRV record updated successfully");
+                  resetEditSRVForm();
+                  refetchAllRecords();
+                }}
+                onError={(error) => {
+                  toast.error("Failed to update SRV record");
+                  console.error(error);
+                }}
+                disabled={!editSRVRecord.target || !editSRVRecord.password}
+              >
+                Update SRV Record
+              </TransactionButton>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog
-        open={deleteAlert.isOpen}
-        onOpenChange={(open) =>
-          setDeleteAlert({
-            isOpen: open,
-            record: deleteAlert.record,
-            recordType: deleteAlert.recordType,
-          })
-        }
-      >
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Delete DNS Record</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              {deleteAlert.recordType === "mx" &&
-                deleteAlert.record &&
-                "priority" in deleteAlert.record &&
-                "value" in deleteAlert.record && (
-                  <>
-                    Are you sure you want to delete this MX record?
-                    <br />
-                    <strong>Priority:</strong>{" "}
-                    {(deleteAlert.record as MXRecord).priority}
-                    <br />
-                    <strong>Value:</strong>{" "}
-                    {(deleteAlert.record as MXRecord).value}
-                  </>
-                )}
-              {deleteAlert.recordType === "srv" &&
-                deleteAlert.record &&
-                "priority" in deleteAlert.record &&
-                "weight" in deleteAlert.record && (
-                  <>
-                    Are you sure you want to delete this SRV record?
-                    <br />
-                    <strong>Priority/Weight/Port:</strong>{" "}
-                    {(deleteAlert.record as SRVRecord).priority}/
-                    {(deleteAlert.record as SRVRecord).weight}/
-                    {(deleteAlert.record as SRVRecord).port}
-                    <br />
-                    <strong>Target:</strong>{" "}
-                    {(deleteAlert.record as SRVRecord).target}
-                  </>
-                )}
-              {deleteAlert.recordType === "standard" &&
-                deleteAlert.record &&
-                "type" in deleteAlert.record && (
-                  <>
-                    Are you sure you want to delete this{" "}
-                    {(deleteAlert.record as DNSRecord).type} record?
-                    <br />
-                    <strong>Value:</strong>{" "}
-                    {(deleteAlert.record as DNSRecord).value}
-                  </>
-                )}
-              <br />
-              <br />
-              This action cannot be undone.
+        {/* Delete Confirmation Dialog */}
+        <Dialog
+          open={deleteAlert.isOpen}
+          onOpenChange={(open) =>
+            setDeleteAlert({
+              isOpen: open,
+              record: deleteAlert.record,
+              recordType: deleteAlert.recordType,
+            })
+          }
+        >
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Delete DNS Record</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                {deleteAlert.recordType === "mx" &&
+                  deleteAlert.record &&
+                  "priority" in deleteAlert.record &&
+                  "value" in deleteAlert.record && (
+                    <>
+                      Are you sure you want to delete this MX record?
+                      <br />
+                      <strong>Priority:</strong>{" "}
+                      {(deleteAlert.record as MXRecord).priority}
+                      <br />
+                      <strong>Value:</strong>{" "}
+                      {(deleteAlert.record as MXRecord).value}
+                    </>
+                  )}
+                {deleteAlert.recordType === "srv" &&
+                  deleteAlert.record &&
+                  "priority" in deleteAlert.record &&
+                  "weight" in deleteAlert.record && (
+                    <>
+                      Are you sure you want to delete this SRV record?
+                      <br />
+                      <strong>Priority/Weight/Port:</strong>{" "}
+                      {(deleteAlert.record as SRVRecord).priority}/
+                      {(deleteAlert.record as SRVRecord).weight}/
+                      {(deleteAlert.record as SRVRecord).port}
+                      <br />
+                      <strong>Target:</strong>{" "}
+                      {(deleteAlert.record as SRVRecord).target}
+                    </>
+                  )}
+                {deleteAlert.recordType === "standard" &&
+                  deleteAlert.record &&
+                  "type" in deleteAlert.record && (
+                    <>
+                      Are you sure you want to delete this{" "}
+                      {(deleteAlert.record as DNSRecord).type} record?
+                      <br />
+                      <strong>Value:</strong>{" "}
+                      {(deleteAlert.record as DNSRecord).value}
+                    </>
+                  )}
+                <br />
+                <br />
+                This action cannot be undone.
+              </div>
+              <div>
+                <Label htmlFor="deletePassword">Password</Label>
+                <Input
+                  id="deletePassword"
+                  type="password"
+                  placeholder="Enter password to confirm"
+                  value={editRecord.password}
+                  onChange={(e) =>
+                    setEditRecord({ ...editRecord, password: e.target.value })
+                  }
+                />
+              </div>
             </div>
-            <div>
-              <Label htmlFor="deletePassword">Password</Label>
-              <Input
-                id="deletePassword"
-                type="password"
-                placeholder="Enter password to confirm"
-                value={editRecord.password}
-                onChange={(e) =>
-                  setEditRecord({ ...editRecord, password: e.target.value })
-                }
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setDeleteAlert({
-                  isOpen: false,
-                  record: null,
-                  recordType: "standard",
-                });
-                setEditRecord({ ...editRecord, password: "" });
-              }}
-            >
-              Cancel
-            </Button>
-            <TransactionButton
-              transaction={() => {
-                if (deleteAlert.recordType === "mx") {
-                  return prepareContractCall({
-                    contract,
-                    method:
-                      "function deleteMX(uint256 index, string _password)",
-                    params: [
-                      BigInt(deleteAlert.record!.index),
-                      editRecord.password,
-                    ],
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setDeleteAlert({
+                    isOpen: false,
+                    record: null,
+                    recordType: "standard",
                   });
-                } else if (deleteAlert.recordType === "srv") {
-                  return prepareContractCall({
-                    contract,
-                    method:
-                      "function deleteSRV(uint256 index, string _password)",
-                    params: [
-                      BigInt(deleteAlert.record!.index),
-                      editRecord.password,
-                    ],
+                  setEditRecord({ ...editRecord, password: "" });
+                }}
+              >
+                Cancel
+              </Button>
+              <TransactionButton
+                transaction={() => {
+                  if (deleteAlert.recordType === "mx") {
+                    return prepareContractCall({
+                      contract,
+                      method:
+                        "function deleteMX(uint256 index, string _password)",
+                      params: [
+                        BigInt(deleteAlert.record!.index),
+                        editRecord.password,
+                      ],
+                    });
+                  } else if (deleteAlert.recordType === "srv") {
+                    return prepareContractCall({
+                      contract,
+                      method:
+                        "function deleteSRV(uint256 index, string _password)",
+                      params: [
+                        BigInt(deleteAlert.record!.index),
+                        editRecord.password,
+                      ],
+                    });
+                  } else {
+                    return prepareContractCall({
+                      contract,
+                      method:
+                        "function deleteRecord(string recordType, uint256 index, string _password)",
+                      params: [
+                        (deleteAlert.record as DNSRecord).type,
+                        BigInt(deleteAlert.record!.index),
+                        editRecord.password,
+                      ],
+                    });
+                  }
+                }}
+                onTransactionConfirmed={() => {
+                  toast.success("DNS record deleted successfully");
+                  setDeleteAlert({
+                    isOpen: false,
+                    record: null,
+                    recordType: "standard",
                   });
-                } else {
-                  return prepareContractCall({
-                    contract,
-                    method:
-                      "function deleteRecord(string recordType, uint256 index, string _password)",
-                    params: [
-                      (deleteAlert.record as DNSRecord).type,
-                      BigInt(deleteAlert.record!.index),
-                      editRecord.password,
-                    ],
-                  });
-                }
-              }}
-              onTransactionConfirmed={() => {
-                toast.success("DNS record deleted successfully");
-                setDeleteAlert({
-                  isOpen: false,
-                  record: null,
-                  recordType: "standard",
-                });
-                setEditRecord({ ...editRecord, password: "" });
-                refetchAllRecords();
-              }}
-              onError={(error) => {
-                toast.error("Failed to delete DNS record");
-                console.error(error);
-              }}
-              disabled={!editRecord.password}
-              className="bg-red-600 hover:bg-red-700 text-white"
-            >
-              Delete Record
-            </TransactionButton>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                  setEditRecord({ ...editRecord, password: "" });
+                  refetchAllRecords();
+                }}
+                onError={(error) => {
+                  toast.error("Failed to delete DNS record");
+                  console.error(error);
+                }}
+                disabled={!editRecord.password}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                Delete Record
+              </TransactionButton>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 };
