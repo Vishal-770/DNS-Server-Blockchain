@@ -38,6 +38,11 @@ import {
   Mail,
   Database,
 } from "lucide-react";
+import {
+  LoadingPage,
+  LoadingCard,
+  LoadingSkeleton,
+} from "@/components/ui/loading";
 
 interface DNSRecord {
   type: string;
@@ -130,38 +135,62 @@ const DNSManagementDashboard: React.FC = () => {
   });
 
   // Read all record types
-  const { data: ARecords, refetch: refetchA } = useReadContract({
+  const {
+    data: ARecords,
+    refetch: refetchA,
+    isPending: aPending,
+  } = useReadContract({
     contract,
     method: "function getRecord(string recordType) view returns (string[])",
     params: ["A"],
   });
 
-  const { data: AAAARecords, refetch: refetchAAAA } = useReadContract({
+  const {
+    data: AAAARecords,
+    refetch: refetchAAAA,
+    isPending: aaaaPending,
+  } = useReadContract({
     contract,
     method: "function getRecord(string recordType) view returns (string[])",
     params: ["AAAA"],
   });
 
-  const { data: CNAMERecords, refetch: refetchCNAME } = useReadContract({
+  const {
+    data: CNAMERecords,
+    refetch: refetchCNAME,
+    isPending: cnamePending,
+  } = useReadContract({
     contract,
     method: "function getRecord(string recordType) view returns (string[])",
     params: ["CNAME"],
   });
 
-  const { data: TXTRecords, refetch: refetchTXT } = useReadContract({
+  const {
+    data: TXTRecords,
+    refetch: refetchTXT,
+    isPending: txtPending,
+  } = useReadContract({
     contract,
     method: "function getRecord(string recordType) view returns (string[])",
     params: ["TXT"],
   });
 
-  const { data: NSRecords, refetch: refetchNS } = useReadContract({
+  const {
+    data: NSRecords,
+    refetch: refetchNS,
+    isPending: nsPending,
+  } = useReadContract({
     contract,
     method: "function getRecord(string recordType) view returns (string[])",
     params: ["NS"],
   });
 
   // Read MX records
-  const { data: MXRecords, refetch: refetchMX } = useReadContract({
+  const {
+    data: MXRecords,
+    refetch: refetchMX,
+    isPending: mxPending,
+  } = useReadContract({
     contract,
     method:
       "function getMX() view returns ((uint256 priority, string value)[])",
@@ -169,7 +198,11 @@ const DNSManagementDashboard: React.FC = () => {
   });
 
   // Read SRV records
-  const { data: SRVRecords, refetch: refetchSRV } = useReadContract({
+  const {
+    data: SRVRecords,
+    refetch: refetchSRV,
+    isPending: srvPending,
+  } = useReadContract({
     contract,
     method:
       "function getSRV() view returns ((uint256 priority, uint256 weight, uint256 port, string target)[])",
@@ -380,9 +413,27 @@ const DNSManagementDashboard: React.FC = () => {
 
   const allRecords = getAllRecords();
 
+  const isLoading =
+    aPending ||
+    aaaaPending ||
+    cnamePending ||
+    txtPending ||
+    nsPending ||
+    mxPending ||
+    srvPending;
+
+  if (isLoading) {
+    return (
+      <LoadingPage
+        title="Loading DNS Records"
+        subtitle="Fetching domain configuration from blockchain..."
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background mt-20">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="container mx-auto px-4 py-8 max-w-7xl animate-fade-in">
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8 space-y-4 lg:space-y-0">
           <div className="space-y-2">
@@ -478,10 +529,10 @@ const DNSManagementDashboard: React.FC = () => {
         </div>
 
         {/* Records Table */}
-        <Card className="shadow-lg border-0 bg-card/80 backdrop-blur-sm">
-          <CardHeader className="border-b border-border">
+        <Card className="shadow-lg border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+          <CardHeader className="border-b border-gray-200 dark:border-gray-700">
             <CardTitle className="flex items-center gap-2 text-xl">
-              <Shield className="h-5 w-5 text-primary" />
+              <Shield className="h-5 w-5 text-blue-600" />
               DNS Records
               {allRecords.length > 0 && (
                 <Badge variant="secondary" className="ml-auto">
@@ -494,18 +545,18 @@ const DNSManagementDashboard: React.FC = () => {
             {allRecords.length === 0 ? (
               <div className="text-center py-16 px-4">
                 <div className="max-w-sm mx-auto">
-                  <Globe className="h-16 w-16 text-muted-foreground mx-auto mb-6" />
-                  <h3 className="text-xl font-semibold text-foreground mb-3">
+                  <Globe className="h-16 w-16 text-gray-400 mx-auto mb-6" />
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
                     No DNS Records
                   </h3>
-                  <p className="text-muted-foreground mb-6 text-sm">
+                  <p className="text-gray-600 dark:text-gray-400 mb-6 text-sm">
                     Get started by adding your first DNS record to manage your
                     domain
                   </p>
                   <div className="flex flex-col sm:flex-row gap-2 justify-center">
                     <Button
                       onClick={handleAddRecord}
-                      className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                      className="bg-blue-600 hover:bg-blue-700"
                     >
                       <Plus className="h-4 w-4 mr-2" />
                       Add DNS Record
@@ -518,7 +569,7 @@ const DNSManagementDashboard: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="divide-y divide-border">
+              <div className="divide-y divide-gray-200 dark:divide-gray-700">
                 {allRecords.map((record, recordIndex) => {
                   const getRecordDisplay = () => {
                     if (
@@ -530,13 +581,13 @@ const DNSManagementDashboard: React.FC = () => {
                       const mxRecord = record as MXRecord & { type: string };
                       return (
                         <div className="space-y-1">
-                          <p className="font-medium text-foreground text-sm md:text-base">
-                            <span className="text-accent-foreground font-mono">
+                          <p className="font-medium text-gray-900 dark:text-white text-sm md:text-base">
+                            <span className="text-orange-600 dark:text-orange-400 font-mono">
                               {mxRecord.priority}
                             </span>{" "}
                             <span className="break-all">{mxRecord.value}</span>
                           </p>
-                          <p className="text-xs md:text-sm text-muted-foreground">
+                          <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">
                             Mail Exchange Record
                           </p>
                         </div>
@@ -551,8 +602,8 @@ const DNSManagementDashboard: React.FC = () => {
                       const srvRecord = record as SRVRecord & { type: string };
                       return (
                         <div className="space-y-1">
-                          <p className="font-medium text-foreground text-sm md:text-base">
-                            <span className="text-secondary-foreground font-mono">
+                          <p className="font-medium text-gray-900 dark:text-white text-sm md:text-base">
+                            <span className="text-purple-600 dark:text-purple-400 font-mono">
                               {srvRecord.priority}/{srvRecord.weight}/
                               {srvRecord.port}
                             </span>{" "}
@@ -560,7 +611,7 @@ const DNSManagementDashboard: React.FC = () => {
                               {srvRecord.target}
                             </span>
                           </p>
-                          <p className="text-xs md:text-sm text-muted-foreground">
+                          <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">
                             Service Record
                           </p>
                         </div>
@@ -570,10 +621,10 @@ const DNSManagementDashboard: React.FC = () => {
                       const dnsRecord = record as DNSRecord;
                       return (
                         <div className="space-y-1">
-                          <p className="font-medium text-foreground text-sm md:text-base break-all">
+                          <p className="font-medium text-gray-900 dark:text-white text-sm md:text-base break-all">
                             {dnsRecord.value}
                           </p>
-                          <p className="text-xs md:text-sm text-muted-foreground">
+                          <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">
                             {
                               recordTypes.find(
                                 (rt) => rt.value === dnsRecord.type
@@ -630,7 +681,7 @@ const DNSManagementDashboard: React.FC = () => {
                   return (
                     <div
                       key={`${recordType}-${record.index}-${recordIndex}`}
-                      className="flex flex-col md:flex-row md:items-center md:justify-between p-4 md:p-6 hover:bg-muted/30 transition-colors duration-200 space-y-3 md:space-y-0"
+                      className="flex flex-col md:flex-row md:items-center md:justify-between p-4 md:p-6 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-200 space-y-3 md:space-y-0"
                     >
                       <div className="flex items-start md:items-center gap-3 md:gap-4 flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-shrink-0">
@@ -662,7 +713,7 @@ const DNSManagementDashboard: React.FC = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => handleDeleteRecord(record)}
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 hover:border-red-200 dark:text-red-400 dark:hover:bg-red-900/20"
                         >
                           <Trash2 className="h-4 w-4" />
                           <span className="hidden sm:ml-1 sm:inline">
@@ -1360,89 +1411,59 @@ const DNSManagementDashboard: React.FC = () => {
             })
           }
         >
-          <DialogContent className="max-w-lg">
-            <DialogHeader className="space-y-3">
-              <DialogTitle className="text-lg font-semibold text-foreground">
-                Delete DNS Record
-              </DialogTitle>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Delete DNS Record</DialogTitle>
             </DialogHeader>
-            <div className="space-y-6">
-              <div className="space-y-4 text-sm text-muted-foreground">
+            <div className="space-y-4">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
                 {deleteAlert.recordType === "mx" &&
                   deleteAlert.record &&
                   "priority" in deleteAlert.record &&
                   "value" in deleteAlert.record && (
-                    <div className="space-y-2">
-                      <p>Are you sure you want to delete this MX record?</p>
-                      <div className="bg-muted p-3 rounded-lg space-y-1">
-                        <div>
-                          <span className="font-medium text-foreground">
-                            Priority:
-                          </span>{" "}
-                          {(deleteAlert.record as MXRecord).priority}
-                        </div>
-                        <div>
-                          <span className="font-medium text-foreground">
-                            Value:
-                          </span>{" "}
-                          {(deleteAlert.record as MXRecord).value}
-                        </div>
-                      </div>
-                    </div>
+                    <>
+                      Are you sure you want to delete this MX record?
+                      <br />
+                      <strong>Priority:</strong>{" "}
+                      {(deleteAlert.record as MXRecord).priority}
+                      <br />
+                      <strong>Value:</strong>{" "}
+                      {(deleteAlert.record as MXRecord).value}
+                    </>
                   )}
                 {deleteAlert.recordType === "srv" &&
                   deleteAlert.record &&
                   "priority" in deleteAlert.record &&
                   "weight" in deleteAlert.record && (
-                    <div className="space-y-2">
-                      <p>Are you sure you want to delete this SRV record?</p>
-                      <div className="bg-muted p-3 rounded-lg space-y-1">
-                        <div>
-                          <span className="font-medium text-foreground">
-                            Priority/Weight/Port:
-                          </span>{" "}
-                          {(deleteAlert.record as SRVRecord).priority}/
-                          {(deleteAlert.record as SRVRecord).weight}/
-                          {(deleteAlert.record as SRVRecord).port}
-                        </div>
-                        <div>
-                          <span className="font-medium text-foreground">
-                            Target:
-                          </span>{" "}
-                          {(deleteAlert.record as SRVRecord).target}
-                        </div>
-                      </div>
-                    </div>
+                    <>
+                      Are you sure you want to delete this SRV record?
+                      <br />
+                      <strong>Priority/Weight/Port:</strong>{" "}
+                      {(deleteAlert.record as SRVRecord).priority}/
+                      {(deleteAlert.record as SRVRecord).weight}/
+                      {(deleteAlert.record as SRVRecord).port}
+                      <br />
+                      <strong>Target:</strong>{" "}
+                      {(deleteAlert.record as SRVRecord).target}
+                    </>
                   )}
                 {deleteAlert.recordType === "standard" &&
                   deleteAlert.record &&
                   "type" in deleteAlert.record && (
-                    <div className="space-y-2">
-                      <p>
-                        Are you sure you want to delete this{" "}
-                        {(deleteAlert.record as DNSRecord).type} record?
-                      </p>
-                      <div className="bg-muted p-3 rounded-lg">
-                        <div>
-                          <span className="font-medium text-foreground">
-                            Value:
-                          </span>{" "}
-                          {(deleteAlert.record as DNSRecord).value}
-                        </div>
-                      </div>
-                    </div>
+                    <>
+                      Are you sure you want to delete this{" "}
+                      {(deleteAlert.record as DNSRecord).type} record?
+                      <br />
+                      <strong>Value:</strong>{" "}
+                      {(deleteAlert.record as DNSRecord).value}
+                    </>
                   )}
-                <p className="text-destructive font-medium">
-                  This action cannot be undone.
-                </p>
+                <br />
+                <br />
+                This action cannot be undone.
               </div>
-              <div className="space-y-2">
-                <Label
-                  htmlFor="deletePassword"
-                  className="text-sm font-medium text-foreground"
-                >
-                  Password
-                </Label>
+              <div>
+                <Label htmlFor="deletePassword">Password</Label>
                 <Input
                   id="deletePassword"
                   type="password"
@@ -1451,11 +1472,10 @@ const DNSManagementDashboard: React.FC = () => {
                   onChange={(e) =>
                     setEditRecord({ ...editRecord, password: e.target.value })
                   }
-                  className="h-11"
                 />
               </div>
             </div>
-            <DialogFooter className="gap-3">
+            <DialogFooter>
               <Button
                 variant="outline"
                 onClick={() => {

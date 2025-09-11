@@ -45,7 +45,7 @@ const Navbar = () => {
           className="flex items-center gap-2 text-xl md:text-2xl font-bold text-primary"
         >
           <Blocks className="h-6 w-6 md:h-8 md:w-8" />
-          DNS DAO
+          Dancing DNS
         </Link>
 
         {/* Center: Desktop Navigation */}

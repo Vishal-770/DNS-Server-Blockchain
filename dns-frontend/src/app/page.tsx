@@ -1,10 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { LoadingSpinner } from "@/components/ui/loading";
 import {
   Globe,
   Shield,
@@ -12,113 +13,108 @@ import {
   Users,
   ArrowRight,
   CheckCircle,
-  Star,
-  Lock,
+  Server,
   Rocket,
-  Network,
-  Database,
 } from "lucide-react";
 
 export default function Home() {
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate loading state
+    const timer = setTimeout(() => setIsLoading(false), 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4 animate-fade-in">
+          <LoadingSpinner size="lg" />
+          <h2 className="text-2xl font-semibold text-foreground">
+            Loading DNS Platform
+          </h2>
+          <p className="text-muted-foreground">
+            Preparing your decentralized domain experience...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const features = [
     {
       icon: <Globe className="h-8 w-8 text-primary" />,
       title: "Decentralized DNS",
       description:
-        "Manage your domain names on the blockchain with complete ownership and control.",
+        "Manage your domains on the blockchain with full ownership and control.",
     },
     {
       icon: <Shield className="h-8 w-8 text-primary" />,
-      title: "Secure & Immutable",
+      title: "Enhanced Security",
       description:
-        "Your DNS records are secured by blockchain technology, ensuring they can't be tampered with.",
+        "Password-protected records and blockchain-level security for your domains.",
     },
     {
       icon: <Zap className="h-8 w-8 text-primary" />,
       title: "Lightning Fast",
       description:
-        "Experience blazing fast DNS resolution with our optimized blockchain infrastructure.",
+        "Quick DNS resolution with fallback to traditional DNS systems.",
     },
     {
       icon: <Users className="h-8 w-8 text-primary" />,
       title: "User Friendly",
-      description:
-        "Intuitive interface makes blockchain DNS management accessible to everyone.",
+      description: "Simple interface for managing complex DNS configurations.",
     },
   ];
 
-  const stats = [
-    {
-      label: "Active Domains",
-      value: "10,000+",
-      icon: <Globe className="h-5 w-5" />,
-    },
-    {
-      label: "DNS Records",
-      value: "50,000+",
-      icon: <Database className="h-5 w-5" />,
-    },
-    {
-      label: "Uptime",
-      value: "99.9%",
-      icon: <CheckCircle className="h-5 w-5" />,
-    },
-    {
-      label: "Response Time",
-      value: "<50ms",
-      icon: <Zap className="h-5 w-5" />,
-    },
-  ];
-
-  const benefits = [
-    "True domain ownership - No intermediaries",
-    "Censorship resistant DNS records",
-    "Global accessibility and reliability",
-    "Transparent and verifiable transactions",
-    "Lower costs compared to traditional DNS",
-    "Future-proof blockchain technology",
+  const recordTypes = [
+    { type: "A", description: "IPv4 Address records" },
+    { type: "AAAA", description: "IPv6 Address records" },
+    { type: "CNAME", description: "Canonical Name records" },
+    { type: "TXT", description: "Text records for verification" },
+    { type: "NS", description: "Name Server records" },
+    { type: "MX", description: "Mail Exchange records" },
+    { type: "SRV", description: "Service records" },
   ];
 
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-background via-background to-muted/20">
-        <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:50px_50px]" />
-        <div className="container mx-auto px-4 py-20 md:py-32 max-w-7xl relative">
-          <div className="text-center space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+      <section className="relative px-4 py-20 bg-gradient-to-br from-primary/5 to-primary/10">
+        <div className="container mx-auto max-w-6xl">
+          <div className="text-center space-y-8 animate-fade-in">
             <Badge
-              variant="outline"
-              className="mb-4 animate-in fade-in delay-200"
+              variant="secondary"
+              className="px-4 py-2 text-sm font-medium"
             >
-              <Rocket className="h-3 w-3 mr-1" />
-              Powered by Blockchain Technology
+              <Rocket className="h-4 w-4 mr-2" />
+              Blockchain DNS Platform
             </Badge>
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-foreground tracking-tight animate-in fade-in slide-in-from-bottom-6 delay-300">
+
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-foreground">
               Decentralized
-              <span className="block bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                DNS Management
-              </span>
+              <span className="text-primary block">DNS Management</span>
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-8 delay-500">
-              Take control of your digital identity with blockchain-powered DNS.
-              Secure, transparent, and truly owned by you. No more middlemen, no
-              more restrictions.
+
+            <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+              Take control of your domains with our blockchain-powered DNS
+              platform. Secure, transparent, and truly decentralized domain
+              management.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-in fade-in slide-in-from-bottom-10 delay-700">
-              <Link href="/">
-                <Button
-                  size="lg"
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-xl hover:shadow-2xl transition-all duration-300 group"
-                >
-                  Get Started
-                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-8">
+              <Link href="/domains">
+                <Button size="lg" className="px-8 py-4 text-lg font-semibold">
+                  Explore Domains
+                  <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
               <Link href="/about">
                 <Button
                   variant="outline"
                   size="lg"
-                  className="shadow-lg hover:shadow-xl transition-all duration-300"
+                  className="px-8 py-4 text-lg"
                 >
                   Learn More
                 </Button>
@@ -128,61 +124,69 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-16 bg-muted/30">
-        <div className="container mx-auto px-4 max-w-7xl">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
-              <div
-                key={stat.label}
-                className="text-center space-y-2 animate-in fade-in slide-in-from-bottom-4 delay-100"
-                style={{ animationDelay: `${index * 100 + 800}ms` }}
+      {/* Features Section */}
+      <section className="px-4 py-20">
+        <div className="container mx-auto max-w-6xl">
+          <div className="text-center space-y-4 mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground">
+              Why Choose Our Platform?
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Experience the future of domain management with blockchain
+              technology
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {features.map((feature, index) => (
+              <Card
+                key={index}
+                className="text-center hover:shadow-lg transition-all duration-300 animate-slide-up"
+                style={{ animationDelay: `${index * 100}ms` }}
               >
-                <div className="flex justify-center text-primary mb-2">
-                  {stat.icon}
-                </div>
-                <div className="text-3xl md:text-4xl font-bold text-foreground">
-                  {stat.value}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {stat.label}
-                </div>
-              </div>
+                <CardHeader className="pb-2">
+                  <div className="mx-auto mb-4 p-3 bg-primary/10 rounded-full w-fit">
+                    {feature.icon}
+                  </div>
+                  <CardTitle className="text-xl">{feature.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">{feature.description}</p>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-20 bg-background">
-        <div className="container mx-auto px-4 max-w-7xl">
-          <div className="text-center mb-16 animate-in fade-in slide-in-from-bottom-4 delay-200">
-            <h2 className="text-3xl md:text-5xl font-bold text-foreground mb-4">
-              Why Choose Blockchain DNS?
+      {/* DNS Records Section */}
+      <section className="px-4 py-20 bg-muted/20">
+        <div className="container mx-auto max-w-6xl">
+          <div className="text-center space-y-4 mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground">
+              Supported DNS Records
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Experience the next generation of domain name system with
-              unprecedented security and control.
+              Comprehensive support for all major DNS record types
             </p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {features.map((feature, index) => (
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {recordTypes.map((record, index) => (
               <Card
-                key={feature.title}
-                className="group hover:shadow-xl transition-all duration-300 border-0 bg-card/50 backdrop-blur-sm hover:bg-card/80 animate-in fade-in slide-in-from-bottom-6"
-                style={{ animationDelay: `${index * 150 + 400}ms` }}
+                key={record.type}
+                className="hover:shadow-md transition-all duration-300 animate-slide-up"
+                style={{ animationDelay: `${index * 50}ms` }}
               >
-                <CardHeader className="text-center pb-4">
-                  <div className="mb-4 flex justify-center group-hover:scale-110 transition-transform duration-300">
-                    {feature.icon}
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Badge variant="outline" className="font-mono text-sm">
+                      {record.type}
+                    </Badge>
+                    <CheckCircle className="h-4 w-4 text-primary" />
                   </div>
-                  <CardTitle className="text-xl font-semibold text-foreground mb-2">
-                    {feature.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-center pt-0">
-                  <p className="text-muted-foreground leading-relaxed">
-                    {feature.description}
+                  <p className="text-sm text-muted-foreground">
+                    {record.description}
                   </p>
                 </CardContent>
               </Card>
@@ -191,97 +195,40 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Benefits Section */}
-      <section className="py-20 bg-muted/20">
-        <div className="container mx-auto px-4 max-w-7xl">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div className="animate-in fade-in slide-in-from-left-6 delay-200">
-              <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
-                The Future of DNS is Here
-              </h2>
-              <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
-                Traditional DNS systems are centralized, vulnerable, and
-                controlled by corporations. Our blockchain-powered solution
-                gives you complete ownership and control over your digital
-                identity.
-              </p>
-              <div className="space-y-4">
-                {benefits.map((benefit, index) => (
-                  <div
-                    key={benefit}
-                    className="flex items-center gap-3 animate-in fade-in slide-in-from-left-4"
-                    style={{ animationDelay: `${index * 100 + 600}ms` }}
-                  >
-                    <CheckCircle className="h-5 w-5 text-primary flex-shrink-0" />
-                    <span className="text-foreground">{benefit}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="animate-in fade-in slide-in-from-right-6 delay-400">
-              <Card className="p-8 border-0 bg-card/50 backdrop-blur-sm shadow-2xl">
-                <div className="text-center space-y-6">
-                  <div className="flex justify-center">
-                    <div className="p-4 bg-primary/10 rounded-full">
-                      <Network className="h-12 w-12 text-primary" />
-                    </div>
-                  </div>
-                  <h3 className="text-2xl font-bold text-foreground">
-                    Decentralized Architecture
-                  </h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    Our distributed network ensures your domains are always
-                    accessible, censorship-resistant, and under your complete
-                    control.
-                  </p>
-                  <div className="flex justify-center gap-2">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star
-                        key={star}
-                        className="h-5 w-5 fill-primary text-primary"
-                      />
-                    ))}
-                  </div>
-                </div>
-              </Card>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* CTA Section */}
-      <section className="py-20 bg-primary/5">
-        <div className="container mx-auto px-4 max-w-4xl text-center">
-          <div className="animate-in fade-in slide-in-from-bottom-6 delay-200">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
-              Ready to Take Control?
-            </h2>
-            <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
-              Join thousands of users who have already moved to decentralized
-              DNS. Start your journey towards true digital ownership today.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/">
-                <Button
-                  size="lg"
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-xl hover:shadow-2xl transition-all duration-300 group"
-                >
-                  <Lock className="mr-2 h-4 w-4" />
-                  Start Managing DNS
-                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </Link>
-              <Link href="/contact">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="shadow-lg hover:shadow-xl transition-all duration-300"
-                >
-                  Contact Us
-                </Button>
-              </Link>
-            </div>
-          </div>
+      <section className="px-4 py-20">
+        <div className="container mx-auto max-w-4xl">
+          <Card className="text-center p-12 bg-primary/5 border-primary/20">
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <h2 className="text-3xl md:text-4xl font-bold text-foreground">
+                  Ready to Get Started?
+                </h2>
+                <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                  Join the decentralized web and take control of your domains
+                  today.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
+                <Link href="/domains">
+                  <Button size="lg" className="px-8 py-4 text-lg font-semibold">
+                    <Server className="mr-2 h-5 w-5" />
+                    Manage Domains
+                  </Button>
+                </Link>
+                <Link href="/contact">
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="px-8 py-4 text-lg"
+                  >
+                    Contact Support
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </section>
     </div>

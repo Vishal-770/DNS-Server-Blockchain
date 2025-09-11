@@ -1,304 +1,204 @@
 "use client";
 
 import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { LoadingSpinner } from "@/components/ui/loading";
+import { toast } from "sonner";
 import {
   Mail,
   MessageSquare,
-  Phone,
-  MapPin,
   Send,
   Clock,
-  Users,
-  Headphones,
-  ArrowRight,
-  CheckCircle,
+  Github,
+  Globe,
+  Shield,
 } from "lucide-react";
-import { toast } from "sonner";
-import { Textarea } from "@/components/ui/textarea";
 
-export default function Contact() {
+export default function ContactPage() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     subject: "",
     message: "",
   });
-
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const contactMethods = [
-    {
-      icon: <Mail className="h-6 w-6 text-primary" />,
-      title: "Email Support",
-      description: "Get help via email within 24 hours",
-      contact: "support@dnsdao.com",
-      action: "Send Email",
-    },
-    {
-      icon: <MessageSquare className="h-6 w-6 text-primary" />,
-      title: "Live Chat",
-      description: "Chat with our team in real-time",
-      contact: "Available 24/7",
-      action: "Start Chat",
-    },
-    {
-      icon: <Phone className="h-6 w-6 text-primary" />,
-      title: "Phone Support",
-      description: "Speak directly with our experts",
-      contact: "+1 (555) 123-4567",
-      action: "Call Now",
-    },
-  ];
-
-  const offices = [
-    {
-      city: "San Francisco",
-      address: "123 Blockchain Street, Suite 100",
-      timezone: "PST (UTC-8)",
-      hours: "9 AM - 6 PM",
-    },
-    {
-      city: "London",
-      address: "456 Decentralized Ave, Floor 5",
-      timezone: "GMT (UTC+0)",
-      hours: "9 AM - 6 PM",
-    },
-    {
-      city: "Singapore",
-      address: "789 Web3 Boulevard, Tower A",
-      timezone: "SGT (UTC+8)",
-      hours: "9 AM - 6 PM",
-    },
-  ];
-
-  const faqs = [
-    {
-      question: "How does blockchain DNS work?",
-      answer:
-        "Blockchain DNS stores domain records on a distributed ledger, ensuring immutability and decentralization.",
-    },
-    {
-      question: "Is it compatible with existing DNS?",
-      answer:
-        "Yes, our system provides backward compatibility while offering enhanced security and ownership.",
-    },
-    {
-      question: "What are the costs involved?",
-      answer:
-        "Transaction fees are minimal, typically under $1, with no recurring subscription fees.",
-    },
-    {
-      question: "How secure is my domain?",
-      answer:
-        "Your domain is secured by blockchain cryptography, making it virtually impossible to hack or steal.",
-    },
-  ];
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     // Simulate form submission
-    setTimeout(() => {
-      toast.success(
-        "Message sent successfully! We'll get back to you within 24 hours."
-      );
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      toast.success("Message sent successfully! We'll get back to you soon.");
       setFormData({ name: "", email: "", subject: "", message: "" });
+    } catch {
+      toast.error("Failed to send message. Please try again.");
+    } finally {
       setIsSubmitting(false);
-    }, 2000);
+    }
   };
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
+  const contactInfo = [
+    {
+      icon: <Mail className="h-6 w-6 text-primary" />,
+      title: "Email",
+      content: "support@dns-platform.com",
+      description: "Send us an email anytime",
+    },
+    {
+      icon: <MessageSquare className="h-6 w-6 text-primary" />,
+      title: "Live Chat",
+      content: "Available 24/7",
+      description: "Chat with our support team",
+    },
+    {
+      icon: <Github className="h-6 w-6 text-primary" />,
+      title: "GitHub",
+      content: "github.com/dns-platform",
+      description: "View our open source code",
+    },
+    {
+      icon: <Clock className="h-6 w-6 text-primary" />,
+      title: "Response Time",
+      content: "Within 24 hours",
+      description: "We respond to all inquiries quickly",
+    },
+  ];
+
+  const supportTopics = [
+    "Domain Management",
+    "DNS Configuration",
+    "Blockchain Integration",
+    "Technical Support",
+    "Account Issues",
+    "API Documentation",
+  ];
 
   return (
     <div className="min-h-screen bg-background mt-20">
       {/* Hero Section */}
-      <section className="py-20 bg-gradient-to-br from-background via-background to-muted/20">
-        <div className="container mx-auto px-4 max-w-7xl">
-          <div className="text-center space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-            <Badge
-              variant="outline"
-              className="mb-4 animate-in fade-in delay-200"
-            >
-              <Headphones className="h-3 w-3 mr-1" />
-              24/7 Support Available
-            </Badge>
-            <h1 className="text-4xl md:text-6xl font-bold text-foreground tracking-tight animate-in fade-in slide-in-from-bottom-6 delay-300">
-              Get in
-              <span className="block bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                Touch
-              </span>
-            </h1>
-            <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-8 delay-500">
-              Have questions about blockchain DNS? Need help with your domains?
-              Our expert team is here to assist you every step of the way.
-            </p>
-          </div>
+      <section className="px-4 py-20 bg-gradient-to-br from-primary/5 to-primary/10">
+        <div className="container mx-auto max-w-6xl text-center space-y-8 animate-fade-in">
+          <Badge variant="secondary" className="px-4 py-2 text-sm font-medium">
+            <MessageSquare className="h-4 w-4 mr-2" />
+            Get in Touch
+          </Badge>
+
+          <h1 className="text-4xl md:text-6xl font-bold text-foreground">
+            Contact
+            <span className="text-primary block">Our Team</span>
+          </h1>
+
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+            Have questions about our DNS platform? Need help with domain
+            management? We&apos;re here to help you every step of the way.
+          </p>
         </div>
       </section>
 
-      {/* Contact Methods */}
-      <section className="py-20 bg-background">
-        <div className="container mx-auto px-4 max-w-7xl">
-          <div className="text-center mb-16 animate-in fade-in slide-in-from-bottom-4 delay-200">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              How Can We Help?
-            </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Choose the contact method that works best for you.
-            </p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {contactMethods.map((method, index) => (
-              <Card
-                key={method.title}
-                className="group hover:shadow-xl transition-all duration-300 border-0 bg-card/50 backdrop-blur-sm hover:bg-card/80 animate-in fade-in slide-in-from-bottom-6"
-                style={{ animationDelay: `${index * 150 + 400}ms` }}
-              >
-                <CardHeader className="text-center pb-4">
-                  <div className="mb-4 flex justify-center group-hover:scale-110 transition-transform duration-300">
-                    {method.icon}
-                  </div>
-                  <CardTitle className="text-xl font-semibold text-foreground mb-2">
-                    {method.title}
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {method.description}
-                  </p>
-                  <Badge variant="outline" className="mb-4">
-                    {method.contact}
-                  </Badge>
-                </CardHeader>
-                <CardContent className="text-center pt-0">
-                  <Button className="w-full group">
-                    {method.action}
-                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Contact Form & Office Info */}
-      <section className="py-20 bg-muted/20">
-        <div className="container mx-auto px-4 max-w-7xl">
-          <div className="grid lg:grid-cols-2 gap-16">
+      {/* Contact Form and Info Section */}
+      <section className="px-4 py-20">
+        <div className="container mx-auto max-w-6xl">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* Contact Form */}
-            <div className="animate-in fade-in slide-in-from-left-6 delay-200">
-              <Card className="p-8 border-0 bg-card/50 backdrop-blur-sm shadow-xl">
-                <CardHeader className="pb-6">
-                  <CardTitle className="text-2xl font-bold text-foreground flex items-center gap-3">
-                    <Send className="h-6 w-6 text-primary" />
-                    Send us a Message
+            <div className="space-y-8 animate-slide-up">
+              <div className="space-y-4">
+                <h2 className="text-3xl font-bold text-foreground">
+                  Send us a Message
+                </h2>
+                <p className="text-muted-foreground">
+                  Fill out the form below and we&apos;ll get back to you as soon
+                  as possible.
+                </p>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Send className="h-5 w-5 text-primary" />
+                    Contact Form
                   </CardTitle>
-                  <p className="text-muted-foreground">
-                    Fill out the form below and we&apos;ll get back to you as
-                    soon as possible.
-                  </p>
                 </CardHeader>
-                <CardContent className="pt-0">
+                <CardContent>
                   <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="grid md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label
-                          htmlFor="name"
-                          className="text-sm font-medium text-foreground"
-                        >
-                          Full Name *
-                        </Label>
+                        <Label htmlFor="name">Name *</Label>
                         <Input
                           id="name"
                           name="name"
-                          type="text"
-                          placeholder="John Doe"
+                          placeholder="Your full name"
                           value={formData.name}
                           onChange={handleInputChange}
                           required
-                          className="h-11"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label
-                          htmlFor="email"
-                          className="text-sm font-medium text-foreground"
-                        >
-                          Email Address *
-                        </Label>
+                        <Label htmlFor="email">Email *</Label>
                         <Input
                           id="email"
                           name="email"
                           type="email"
-                          placeholder="john@example.com"
+                          placeholder="your.email@example.com"
                           value={formData.email}
                           onChange={handleInputChange}
                           required
-                          className="h-11"
                         />
                       </div>
                     </div>
+
                     <div className="space-y-2">
-                      <Label
-                        htmlFor="subject"
-                        className="text-sm font-medium text-foreground"
-                      >
-                        Subject *
-                      </Label>
+                      <Label htmlFor="subject">Subject *</Label>
                       <Input
                         id="subject"
                         name="subject"
-                        type="text"
-                        placeholder="How can we help you?"
+                        placeholder="What is this regarding?"
                         value={formData.subject}
                         onChange={handleInputChange}
                         required
-                        className="h-11"
                       />
                     </div>
+
                     <div className="space-y-2">
-                      <Label
-                        htmlFor="message"
-                        className="text-sm font-medium text-foreground"
-                      >
-                        Message *
-                      </Label>
-                      <Textarea
+                      <Label htmlFor="message">Message *</Label>
+                      <textarea
                         id="message"
                         name="message"
-                        placeholder="Tell us more about your inquiry..."
+                        rows={6}
+                        placeholder="Tell us how we can help you..."
                         value={formData.message}
                         onChange={handleInputChange}
                         required
-                        rows={5}
-                        className="resize-none"
+                        className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
                       />
                     </div>
+
                     <Button
                       type="submit"
-                      size="lg"
                       disabled={isSubmitting}
-                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground group"
+                      className="w-full relative"
                     >
                       {isSubmitting ? (
-                        "Sending..."
+                        <>
+                          <LoadingSpinner size="sm" className="mr-2" />
+                          Sending Message...
+                        </>
                       ) : (
                         <>
+                          <Send className="mr-2 h-4 w-4" />
                           Send Message
-                          <Send className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                         </>
                       )}
                     </Button>
@@ -307,120 +207,129 @@ export default function Contact() {
               </Card>
             </div>
 
-            {/* Office Information */}
-            <div className="space-y-8 animate-in fade-in slide-in-from-right-6 delay-400">
-              <div>
-                <h3 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-3">
-                  <MapPin className="h-6 w-6 text-primary" />
-                  Our Offices
-                </h3>
-                <div className="space-y-6">
-                  {offices.map((office, index) => (
-                    <Card
-                      key={office.city}
-                      className="p-6 border-0 bg-card/50 backdrop-blur-sm hover:shadow-lg transition-shadow duration-300 animate-in fade-in slide-in-from-right-4"
-                      style={{ animationDelay: `${index * 100 + 600}ms` }}
-                    >
-                      <h4 className="text-lg font-semibold text-foreground mb-2">
-                        {office.city}
-                      </h4>
-                      <div className="space-y-2 text-sm text-muted-foreground">
-                        <p>{office.address}</p>
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4" />
-                            <span>{office.hours}</span>
-                          </div>
-                          <Badge variant="outline" className="text-xs">
-                            {office.timezone}
-                          </Badge>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
+            {/* Contact Information */}
+            <div
+              className="space-y-8 animate-slide-up"
+              style={{ animationDelay: "200ms" }}
+            >
+              <div className="space-y-4">
+                <h2 className="text-3xl font-bold text-foreground">
+                  Get in Touch
+                </h2>
+                <p className="text-muted-foreground">
+                  Choose the best way to reach us. We&apos;re here to help with
+                  all your DNS and domain needs.
+                </p>
               </div>
 
-              {/* FAQ Section */}
-              <div>
-                <h3 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-3">
-                  <MessageSquare className="h-6 w-6 text-primary" />
-                  Frequently Asked Questions
-                </h3>
-                <div className="space-y-4">
-                  {faqs.map((faq, index) => (
-                    <Card
-                      key={faq.question}
-                      className="p-6 border-0 bg-card/50 backdrop-blur-sm hover:shadow-lg transition-shadow duration-300 animate-in fade-in slide-in-from-right-4"
-                      style={{ animationDelay: `${index * 100 + 800}ms` }}
-                    >
-                      <h4 className="text-base font-semibold text-foreground mb-2 flex items-start gap-3">
-                        <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                        {faq.question}
-                      </h4>
-                      <p className="text-sm text-muted-foreground leading-relaxed ml-8">
-                        {faq.answer}
-                      </p>
-                    </Card>
-                  ))}
-                </div>
+              {/* Contact Methods */}
+              <div className="space-y-4">
+                {contactInfo.map((info, index) => (
+                  <Card
+                    key={index}
+                    className="hover:shadow-md transition-all duration-300"
+                  >
+                    <CardContent className="p-6">
+                      <div className="flex items-start gap-4">
+                        <div className="p-2 bg-primary/10 rounded-lg">
+                          {info.icon}
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-foreground">
+                            {info.title}
+                          </h3>
+                          <p className="text-primary font-medium">
+                            {info.content}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {info.description}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
+
+              {/* Support Topics */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5 text-primary" />
+                    Support Topics
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {supportTopics.map((topic, index) => (
+                      <Badge key={index} variant="secondary">
+                        {topic}
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* FAQ Link */}
+              <Card className="bg-primary/5 border-primary/20">
+                <CardContent className="p-6 text-center">
+                  <Globe className="h-12 w-12 text-primary mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-foreground mb-2">
+                    Need Quick Answers?
+                  </h3>
+                  <p className="text-muted-foreground mb-4">
+                    Check out our documentation and FAQ section for instant
+                    solutions.
+                  </p>
+                  <Button variant="outline">View Documentation</Button>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Support Stats */}
-      <section className="py-20 bg-background">
-        <div className="container mx-auto px-4 max-w-7xl">
-          <div className="text-center mb-16 animate-in fade-in slide-in-from-bottom-4 delay-200">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Support You Can Count On
-            </h2>
-            <p className="text-lg text-muted-foreground">
-              Our commitment to exceptional customer service.
-            </p>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {[
-              {
-                icon: <Clock className="h-6 w-6" />,
-                value: "< 2hrs",
-                label: "Avg Response Time",
-              },
-              {
-                icon: <Users className="h-6 w-6" />,
-                value: "98%",
-                label: "Customer Satisfaction",
-              },
-              {
-                icon: <CheckCircle className="h-6 w-6" />,
-                value: "24/7",
-                label: "Support Available",
-              },
-              {
-                icon: <Headphones className="h-6 w-6" />,
-                value: "5+",
-                label: "Languages Supported",
-              },
-            ].map((stat, index) => (
-              <div
-                key={stat.label}
-                className="text-center space-y-3 animate-in fade-in slide-in-from-bottom-4"
-                style={{ animationDelay: `${index * 100 + 400}ms` }}
-              >
-                <div className="flex justify-center text-primary mb-2">
-                  {stat.icon}
+      {/* Response Promise Section */}
+      <section className="px-4 py-20 bg-muted/20">
+        <div className="container mx-auto max-w-4xl">
+          <Card className="text-center p-12">
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <h2 className="text-3xl md:text-4xl font-bold text-foreground">
+                  We&apos;re Here to Help
+                </h2>
+                <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                  Our dedicated support team is committed to providing you with
+                  the best possible experience. We respond to all inquiries
+                  within 24 hours and provide ongoing support for all our users.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-8">
+                <div className="text-center">
+                  <Clock className="h-8 w-8 text-primary mx-auto mb-2" />
+                  <h3 className="font-semibold">24 Hour Response</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Quick reply guarantee
+                  </p>
                 </div>
-                <div className="text-3xl md:text-4xl font-bold text-foreground">
-                  {stat.value}
+                <div className="text-center">
+                  <Shield className="h-8 w-8 text-primary mx-auto mb-2" />
+                  <h3 className="font-semibold">Expert Support</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Technical expertise
+                  </p>
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  {stat.label}
+                <div className="text-center">
+                  <Globe className="h-8 w-8 text-primary mx-auto mb-2" />
+                  <h3 className="font-semibold">Global Coverage</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Worldwide availability
+                  </p>
                 </div>
               </div>
-            ))}
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </section>
     </div>

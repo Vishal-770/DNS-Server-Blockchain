@@ -381,7 +381,7 @@ process.on("SIGTERM", () => {
   });
 });
 
-// Handle uncaught exceptions
+
 process.on("uncaughtException", (err) => {
   console.error("❌ Uncaught Exception:", err);
   server.close(() => {
