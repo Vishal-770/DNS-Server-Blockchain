@@ -87,7 +87,7 @@ export default function ContactPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background mt-20">
+    <div className="min-h-[calc(100vh-80px)] bg-background mt-20">
       {/* Hero Section */}
       <section className="px-4 py-20 bg-gradient-to-br from-primary/5 to-primary/10">
         <div className="container mx-auto max-w-6xl text-center space-y-8 animate-fade-in">

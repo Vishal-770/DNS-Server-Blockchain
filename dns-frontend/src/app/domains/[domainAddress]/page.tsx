@@ -18,11 +18,8 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import {
-  LoadingSpinner,
-  LoadingCard,
-  LoadingSkeleton,
-} from "@/components/ui/loading";
+import { LoadingCard, LoadingSkeleton } from "@/components/ui/loading";
+import { PageHeader } from "@/components/ui/page-header";
 
 const DomainPage: React.FC = () => {
   const { domainAddress } = useParams();
@@ -93,13 +90,23 @@ const DomainPage: React.FC = () => {
     return (
       <div className="min-h-screen bg-background mt-20">
         <div className="container mx-auto px-4 py-8 max-w-7xl animate-fade-in">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8 space-y-4 lg:space-y-0">
-            <div className="space-y-2">
-              <LoadingSkeleton className="h-8 w-64" />
-              <LoadingSkeleton className="h-5 w-80" />
-            </div>
-            <LoadingSkeleton className="h-10 w-40" />
+          <div className="mb-4">
+            <LoadingSkeleton className="h-10 w-16" />
           </div>
+
+          <PageHeader
+            title="Domain Records"
+            subtitle={
+              <span>
+                DNS records for:{" "}
+                <span className="font-mono text-primary">{domainAddress}</span>
+              </span>
+            }
+            showBackButton
+            backHref="/user"
+          >
+            <LoadingSkeleton className="h-10 w-40" />
+          </PageHeader>
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
             {Array.from({ length: 7 }).map((_, i) => (
@@ -172,25 +179,26 @@ const DomainPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background mt-20">
+    <div className="min-h-[calc(100vh-80px)] bg-background mt-20">
       <div className="container mx-auto px-4 py-8 max-w-7xl animate-fade-in">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8 space-y-4 lg:space-y-0">
-          <div className="space-y-2">
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground">
-              Domain Records
-            </h1>
-            <p className="text-sm md:text-base text-muted-foreground break-all lg:break-normal">
+        <PageHeader
+          title="Domain Records"
+          subtitle={
+            <span>
               DNS records for:{" "}
               <span className="font-mono text-primary">{domainAddress}</span>
-            </p>
-          </div>
+            </span>
+          }
+          showBackButton
+          backHref="/user"
+        >
           <Link href={`/domains/${domainAddress}/manage`}>
             <Button className="flex items-center gap-2 shadow-lg hover:shadow-xl transition-all duration-200 w-full sm:w-auto">
               <Settings className="h-4 w-4" />
               Manage Records
             </Button>
           </Link>
-        </div>
+        </PageHeader>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 mb-8">
           {records.map((record, index) => (

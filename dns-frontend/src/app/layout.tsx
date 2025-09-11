@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import NavBar from "@/components/NavBar";
+import { Footer } from "@/components/Footer";
 import { ThirdwebProvider } from "thirdweb/react";
 import { Toaster } from "sonner";
 
@@ -29,7 +30,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
         <ThirdwebProvider>
           <ThemeProvider
@@ -39,7 +40,8 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <NavBar />
-            {children}
+            <main className="flex-1">{children}</main>
+            <Footer />
             <Toaster />
           </ThemeProvider>
         </ThirdwebProvider>

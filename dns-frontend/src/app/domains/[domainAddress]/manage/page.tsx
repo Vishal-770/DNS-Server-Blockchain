@@ -38,11 +38,8 @@ import {
   Mail,
   Database,
 } from "lucide-react";
-import {
-  LoadingPage,
-  LoadingCard,
-  LoadingSkeleton,
-} from "@/components/ui/loading";
+import { LoadingPage } from "@/components/ui/loading";
+import { PageHeader } from "@/components/ui/page-header";
 
 interface DNSRecord {
   type: string;
@@ -432,49 +429,46 @@ const DNSManagementDashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background mt-20">
+    <div className="min-h-[calc(100vh-80px)] bg-background mt-20">
       <div className="container mx-auto px-4 py-8 max-w-7xl animate-fade-in">
-        {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8 space-y-4 lg:space-y-0">
-          <div className="space-y-2">
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground">
-              DNS Management
-            </h1>
-            <p className="text-sm md:text-base text-muted-foreground break-all lg:break-normal">
+        <PageHeader
+          title="DNS Management"
+          subtitle={
+            <span>
               Manage DNS records for domain:{" "}
               <span className="font-mono text-primary">{domainAddress}</span>
-            </p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <Button
-              onClick={handleAddRecord}
-              className="flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-200"
-            >
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Add Record</span>
-              <span className="sm:hidden">Add DNS</span>
-            </Button>
-            <Button
-              onClick={handleAddMXRecord}
-              variant="outline"
-              className="flex items-center justify-center gap-2 hover:bg-accent hover:text-accent-foreground"
-            >
-              <Mail className="h-4 w-4" />
-              <span className="hidden sm:inline">Add MX</span>
-              <span className="sm:hidden">MX</span>
-            </Button>
-            <Button
-              onClick={handleAddSRVRecord}
-              variant="outline"
-              className="flex items-center justify-center gap-2 hover:bg-accent hover:text-accent-foreground"
-            >
-              <Database className="h-4 w-4" />
-              <span className="hidden sm:inline">Add SRV</span>
-              <span className="sm:hidden">SRV</span>
-            </Button>
-          </div>
-        </div>
-
+            </span>
+          }
+          showBackButton
+          backHref={`/domains/${domainAddress}`}
+        >
+          <Button
+            onClick={handleAddRecord}
+            className="flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all duration-200"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Add Record</span>
+            <span className="sm:hidden">Add DNS</span>
+          </Button>
+          <Button
+            onClick={handleAddMXRecord}
+            variant="outline"
+            className="flex items-center justify-center gap-2"
+          >
+            <Mail className="h-4 w-4" />
+            <span className="hidden sm:inline">Add MX</span>
+            <span className="sm:hidden">MX</span>
+          </Button>
+          <Button
+            onClick={handleAddSRVRecord}
+            variant="outline"
+            className="flex items-center justify-center gap-2"
+          >
+            <Database className="h-4 w-4" />
+            <span className="hidden sm:inline">Add SRV</span>
+            <span className="sm:hidden">SRV</span>
+          </Button>
+        </PageHeader>{" "}
         {/* Records Overview */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3 md:gap-4 mb-8">
           {recordTypes.map((recordType) => {
@@ -527,12 +521,11 @@ const DNSManagementDashboard: React.FC = () => {
             );
           })}
         </div>
-
         {/* Records Table */}
-        <Card className="shadow-lg border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-          <CardHeader className="border-b border-gray-200 dark:border-gray-700">
+        <Card className="shadow-lg border bg-card">
+          <CardHeader className="border-b border-border">
             <CardTitle className="flex items-center gap-2 text-xl">
-              <Shield className="h-5 w-5 text-blue-600" />
+              <Shield className="h-5 w-5 text-primary" />
               DNS Records
               {allRecords.length > 0 && (
                 <Badge variant="secondary" className="ml-auto">
@@ -545,18 +538,18 @@ const DNSManagementDashboard: React.FC = () => {
             {allRecords.length === 0 ? (
               <div className="text-center py-16 px-4">
                 <div className="max-w-sm mx-auto">
-                  <Globe className="h-16 w-16 text-gray-400 mx-auto mb-6" />
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
+                  <Globe className="h-16 w-16 text-muted-foreground mx-auto mb-6" />
+                  <h3 className="text-xl font-semibold text-foreground mb-3">
                     No DNS Records
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-400 mb-6 text-sm">
+                  <p className="text-muted-foreground mb-6 text-sm">
                     Get started by adding your first DNS record to manage your
                     domain
                   </p>
                   <div className="flex flex-col sm:flex-row gap-2 justify-center">
                     <Button
                       onClick={handleAddRecord}
-                      className="bg-blue-600 hover:bg-blue-700"
+                      className="shadow-lg hover:shadow-xl transition-all duration-200"
                     >
                       <Plus className="h-4 w-4 mr-2" />
                       Add DNS Record
@@ -569,7 +562,7 @@ const DNSManagementDashboard: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+              <div className="divide-y divide-border">
                 {allRecords.map((record, recordIndex) => {
                   const getRecordDisplay = () => {
                     if (
@@ -581,13 +574,13 @@ const DNSManagementDashboard: React.FC = () => {
                       const mxRecord = record as MXRecord & { type: string };
                       return (
                         <div className="space-y-1">
-                          <p className="font-medium text-gray-900 dark:text-white text-sm md:text-base">
-                            <span className="text-orange-600 dark:text-orange-400 font-mono">
+                          <p className="font-medium text-foreground text-sm md:text-base">
+                            <span className="text-primary font-mono">
                               {mxRecord.priority}
                             </span>{" "}
                             <span className="break-all">{mxRecord.value}</span>
                           </p>
-                          <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">
+                          <p className="text-xs md:text-sm text-muted-foreground">
                             Mail Exchange Record
                           </p>
                         </div>
@@ -602,8 +595,8 @@ const DNSManagementDashboard: React.FC = () => {
                       const srvRecord = record as SRVRecord & { type: string };
                       return (
                         <div className="space-y-1">
-                          <p className="font-medium text-gray-900 dark:text-white text-sm md:text-base">
-                            <span className="text-purple-600 dark:text-purple-400 font-mono">
+                          <p className="font-medium text-foreground text-sm md:text-base">
+                            <span className="text-primary font-mono">
                               {srvRecord.priority}/{srvRecord.weight}/
                               {srvRecord.port}
                             </span>{" "}
@@ -611,7 +604,7 @@ const DNSManagementDashboard: React.FC = () => {
                               {srvRecord.target}
                             </span>
                           </p>
-                          <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">
+                          <p className="text-xs md:text-sm text-muted-foreground">
                             Service Record
                           </p>
                         </div>
@@ -621,10 +614,10 @@ const DNSManagementDashboard: React.FC = () => {
                       const dnsRecord = record as DNSRecord;
                       return (
                         <div className="space-y-1">
-                          <p className="font-medium text-gray-900 dark:text-white text-sm md:text-base break-all">
+                          <p className="font-medium text-foreground text-sm md:text-base break-all">
                             {dnsRecord.value}
                           </p>
-                          <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">
+                          <p className="text-xs md:text-sm text-muted-foreground">
                             {
                               recordTypes.find(
                                 (rt) => rt.value === dnsRecord.type
@@ -681,7 +674,7 @@ const DNSManagementDashboard: React.FC = () => {
                   return (
                     <div
                       key={`${recordType}-${record.index}-${recordIndex}`}
-                      className="flex flex-col md:flex-row md:items-center md:justify-between p-4 md:p-6 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-200 space-y-3 md:space-y-0"
+                      className="flex flex-col md:flex-row md:items-center md:justify-between p-4 md:p-6 hover:bg-muted/50 transition-colors duration-200 space-y-3 md:space-y-0"
                     >
                       <div className="flex items-start md:items-center gap-3 md:gap-4 flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-shrink-0">
@@ -728,7 +721,6 @@ const DNSManagementDashboard: React.FC = () => {
             )}
           </CardContent>
         </Card>
-
         {/* Add Record Dialog */}
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogContent className="max-w-lg">
@@ -844,7 +836,6 @@ const DNSManagementDashboard: React.FC = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
         {/* Edit Record Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent className="max-w-lg">
@@ -939,7 +930,6 @@ const DNSManagementDashboard: React.FC = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
         {/* Add MX Record Dialog */}
         <Dialog open={isMXDialogOpen} onOpenChange={setIsMXDialogOpen}>
           <DialogContent className="max-w-lg">
@@ -1042,7 +1032,6 @@ const DNSManagementDashboard: React.FC = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
         {/* Add SRV Record Dialog */}
         <Dialog open={isSRVDialogOpen} onOpenChange={setIsSRVDialogOpen}>
           <DialogContent className="max-w-lg">
@@ -1185,19 +1174,23 @@ const DNSManagementDashboard: React.FC = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
         {/* Edit MX Record Dialog */}
         <Dialog open={isEditMXDialogOpen} onOpenChange={setIsEditMXDialogOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Mail className="h-5 w-5" />
+          <DialogContent className="max-w-lg">
+            <DialogHeader className="space-y-3">
+              <DialogTitle className="text-xl font-semibold flex items-center gap-3">
+                <Mail className="h-5 w-5 text-primary" />
                 Edit MX Record
               </DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                Update the mail exchange record for your domain
+              </p>
             </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="editMxPriority">Priority</Label>
+            <div className="space-y-6 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="editMxPriority" className="text-sm font-medium">
+                  Priority
+                </Label>
                 <Input
                   id="editMxPriority"
                   type="number"
@@ -1209,10 +1202,16 @@ const DNSManagementDashboard: React.FC = () => {
                       priority: Number(e.target.value),
                     })
                   }
+                  className="h-11"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Lower numbers have higher priority
+                </p>
               </div>
-              <div>
-                <Label htmlFor="editMxValue">Mail Server</Label>
+              <div className="space-y-2">
+                <Label htmlFor="editMxValue" className="text-sm font-medium">
+                  Mail Server
+                </Label>
                 <Input
                   id="editMxValue"
                   placeholder="e.g., mail.example.com"
@@ -1220,14 +1219,17 @@ const DNSManagementDashboard: React.FC = () => {
                   onChange={(e) =>
                     setEditMXRecord({ ...editMXRecord, value: e.target.value })
                   }
+                  className="h-11"
                 />
               </div>
-              <div>
-                <Label htmlFor="editMxPassword">Password</Label>
+              <div className="space-y-2">
+                <Label htmlFor="editMxPassword" className="text-sm font-medium">
+                  Password
+                </Label>
                 <Input
                   id="editMxPassword"
                   type="password"
-                  placeholder="Enter password"
+                  placeholder="Enter your domain password"
                   value={editMXRecord.password}
                   onChange={(e) =>
                     setEditMXRecord({
@@ -1235,14 +1237,20 @@ const DNSManagementDashboard: React.FC = () => {
                       password: e.target.value,
                     })
                   }
+                  className="h-11"
                 />
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={resetEditMXForm}>
+            <DialogFooter className="gap-3 pt-4">
+              <Button
+                variant="outline"
+                onClick={resetEditMXForm}
+                className="flex-1"
+              >
                 Cancel
               </Button>
               <TransactionButton
+                className="flex-1"
                 transaction={() =>
                   prepareContractCall({
                     contract,
@@ -1272,23 +1280,30 @@ const DNSManagementDashboard: React.FC = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
         {/* Edit SRV Record Dialog */}
         <Dialog
           open={isEditSRVDialogOpen}
           onOpenChange={setIsEditSRVDialogOpen}
         >
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Database className="h-5 w-5" />
+          <DialogContent className="max-w-lg">
+            <DialogHeader className="space-y-3">
+              <DialogTitle className="text-xl font-semibold flex items-center gap-3">
+                <Database className="h-5 w-5 text-primary" />
                 Edit SRV Record
               </DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                Update the service record for your domain
+              </p>
             </DialogHeader>
-            <div className="space-y-4">
+            <div className="space-y-6 py-4">
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="editSrvPriority">Priority</Label>
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="editSrvPriority"
+                    className="text-sm font-medium"
+                  >
+                    Priority
+                  </Label>
                   <Input
                     id="editSrvPriority"
                     type="number"
@@ -1300,10 +1315,16 @@ const DNSManagementDashboard: React.FC = () => {
                         priority: Number(e.target.value),
                       })
                     }
+                    className="h-11"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="editSrvWeight">Weight</Label>
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="editSrvWeight"
+                    className="text-sm font-medium"
+                  >
+                    Weight
+                  </Label>
                   <Input
                     id="editSrvWeight"
                     type="number"
@@ -1315,11 +1336,14 @@ const DNSManagementDashboard: React.FC = () => {
                         weight: Number(e.target.value),
                       })
                     }
+                    className="h-11"
                   />
                 </div>
               </div>
-              <div>
-                <Label htmlFor="editSrvPort">Port</Label>
+              <div className="space-y-2">
+                <Label htmlFor="editSrvPort" className="text-sm font-medium">
+                  Port
+                </Label>
                 <Input
                   id="editSrvPort"
                   type="number"
@@ -1331,10 +1355,13 @@ const DNSManagementDashboard: React.FC = () => {
                       port: Number(e.target.value),
                     })
                   }
+                  className="h-11"
                 />
               </div>
-              <div>
-                <Label htmlFor="editSrvTarget">Target</Label>
+              <div className="space-y-2">
+                <Label htmlFor="editSrvTarget" className="text-sm font-medium">
+                  Target
+                </Label>
                 <Input
                   id="editSrvTarget"
                   placeholder="e.g., server.example.com"
@@ -1345,14 +1372,20 @@ const DNSManagementDashboard: React.FC = () => {
                       target: e.target.value,
                     })
                   }
+                  className="h-11"
                 />
               </div>
-              <div>
-                <Label htmlFor="editSrvPassword">Password</Label>
+              <div className="space-y-2">
+                <Label
+                  htmlFor="editSrvPassword"
+                  className="text-sm font-medium"
+                >
+                  Password
+                </Label>
                 <Input
                   id="editSrvPassword"
                   type="password"
-                  placeholder="Enter password"
+                  placeholder="Enter your domain password"
                   value={editSRVRecord.password}
                   onChange={(e) =>
                     setEditSRVRecord({
@@ -1360,14 +1393,20 @@ const DNSManagementDashboard: React.FC = () => {
                       password: e.target.value,
                     })
                   }
+                  className="h-11"
                 />
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={resetEditSRVForm}>
+            <DialogFooter className="gap-3 pt-4">
+              <Button
+                variant="outline"
+                onClick={resetEditSRVForm}
+                className="flex-1"
+              >
                 Cancel
               </Button>
               <TransactionButton
+                className="flex-1"
                 transaction={() =>
                   prepareContractCall({
                     contract,
@@ -1399,7 +1438,6 @@ const DNSManagementDashboard: React.FC = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
         {/* Delete Confirmation Dialog */}
         <Dialog
           open={deleteAlert.isOpen}
@@ -1411,71 +1449,89 @@ const DNSManagementDashboard: React.FC = () => {
             })
           }
         >
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Delete DNS Record</DialogTitle>
+          <DialogContent className="max-w-lg">
+            <DialogHeader className="space-y-3">
+              <DialogTitle className="text-xl font-semibold flex items-center gap-3">
+                <Trash2 className="h-5 w-5 text-destructive" />
+                Delete DNS Record
+              </DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                This action cannot be undone. Please confirm the deletion.
+              </p>
             </DialogHeader>
-            <div className="space-y-4">
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                {deleteAlert.recordType === "mx" &&
-                  deleteAlert.record &&
-                  "priority" in deleteAlert.record &&
-                  "value" in deleteAlert.record && (
-                    <>
-                      Are you sure you want to delete this MX record?
-                      <br />
-                      <strong>Priority:</strong>{" "}
-                      {(deleteAlert.record as MXRecord).priority}
-                      <br />
-                      <strong>Value:</strong>{" "}
-                      {(deleteAlert.record as MXRecord).value}
-                    </>
-                  )}
-                {deleteAlert.recordType === "srv" &&
-                  deleteAlert.record &&
-                  "priority" in deleteAlert.record &&
-                  "weight" in deleteAlert.record && (
-                    <>
-                      Are you sure you want to delete this SRV record?
-                      <br />
-                      <strong>Priority/Weight/Port:</strong>{" "}
-                      {(deleteAlert.record as SRVRecord).priority}/
-                      {(deleteAlert.record as SRVRecord).weight}/
-                      {(deleteAlert.record as SRVRecord).port}
-                      <br />
-                      <strong>Target:</strong>{" "}
-                      {(deleteAlert.record as SRVRecord).target}
-                    </>
-                  )}
-                {deleteAlert.recordType === "standard" &&
-                  deleteAlert.record &&
-                  "type" in deleteAlert.record && (
-                    <>
-                      Are you sure you want to delete this{" "}
-                      {(deleteAlert.record as DNSRecord).type} record?
-                      <br />
-                      <strong>Value:</strong>{" "}
-                      {(deleteAlert.record as DNSRecord).value}
-                    </>
-                  )}
-                <br />
-                <br />
-                This action cannot be undone.
+            <div className="space-y-6 py-4">
+              <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4">
+                <div className="text-sm text-foreground space-y-2">
+                  {deleteAlert.recordType === "mx" &&
+                    deleteAlert.record &&
+                    "priority" in deleteAlert.record &&
+                    "value" in deleteAlert.record && (
+                      <div className="space-y-1">
+                        <p className="font-medium">MX Record Details:</p>
+                        <p>
+                          <strong>Priority:</strong>{" "}
+                          {(deleteAlert.record as MXRecord).priority}
+                        </p>
+                        <p>
+                          <strong>Mail Server:</strong>{" "}
+                          {(deleteAlert.record as MXRecord).value}
+                        </p>
+                      </div>
+                    )}
+                  {deleteAlert.recordType === "srv" &&
+                    deleteAlert.record &&
+                    "priority" in deleteAlert.record &&
+                    "weight" in deleteAlert.record && (
+                      <div className="space-y-1">
+                        <p className="font-medium">SRV Record Details:</p>
+                        <p>
+                          <strong>Priority/Weight/Port:</strong>{" "}
+                          {(deleteAlert.record as SRVRecord).priority}/
+                          {(deleteAlert.record as SRVRecord).weight}/
+                          {(deleteAlert.record as SRVRecord).port}
+                        </p>
+                        <p>
+                          <strong>Target:</strong>{" "}
+                          {(deleteAlert.record as SRVRecord).target}
+                        </p>
+                      </div>
+                    )}
+                  {deleteAlert.recordType === "standard" &&
+                    deleteAlert.record &&
+                    "type" in deleteAlert.record && (
+                      <div className="space-y-1">
+                        <p className="font-medium">
+                          {(deleteAlert.record as DNSRecord).type} Record
+                          Details:
+                        </p>
+                        <p>
+                          <strong>Value:</strong>{" "}
+                          {(deleteAlert.record as DNSRecord).value}
+                        </p>
+                      </div>
+                    )}
+                </div>
               </div>
-              <div>
-                <Label htmlFor="deletePassword">Password</Label>
+              <div className="space-y-2">
+                <Label htmlFor="deletePassword" className="text-sm font-medium">
+                  Password Confirmation
+                </Label>
                 <Input
                   id="deletePassword"
                   type="password"
-                  placeholder="Enter password to confirm"
+                  placeholder="Enter your domain password to confirm deletion"
                   value={editRecord.password}
                   onChange={(e) =>
                     setEditRecord({ ...editRecord, password: e.target.value })
                   }
+                  className="h-11"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Enter your domain password to confirm this deletion
+                </p>
               </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="gap-3 pt-4">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -1486,10 +1542,12 @@ const DNSManagementDashboard: React.FC = () => {
                   });
                   setEditRecord({ ...editRecord, password: "" });
                 }}
+                className="flex-1"
               >
                 Cancel
               </Button>
               <TransactionButton
+                className="flex-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
                 transaction={() => {
                   if (deleteAlert.recordType === "mx") {
                     return prepareContractCall({
@@ -1539,7 +1597,6 @@ const DNSManagementDashboard: React.FC = () => {
                   console.error(error);
                 }}
                 disabled={!editRecord.password}
-                className="bg-red-600 hover:bg-red-700 text-white"
               >
                 Delete Record
               </TransactionButton>

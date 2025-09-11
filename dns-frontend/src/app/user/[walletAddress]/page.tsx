@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { LoadingPage } from "@/components/ui/loading";
 import { Plus, ExternalLink, Globe } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
 
 const DomainsPage: React.FC = () => {
   const account = useActiveAccount();
@@ -75,19 +76,14 @@ const DomainsPage: React.FC = () => {
   const domainContracts = data?.[1] || [];
 
   return (
-    <div className="min-h-screen bg-background mt-20">
+    <div className="min-h-[calc(100vh-80px)] bg-background mt-20">
       <div className="max-w-6xl mx-auto px-4 py-8 animate-fade-in">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 space-y-4 sm:space-y-0">
-          <div className="space-y-2">
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-              Your Domains
-            </h1>
-            <p className="text-muted-foreground">
-              Manage your decentralized domain portfolio
-            </p>
-          </div>
-
+        <PageHeader
+          title="Your Domains"
+          subtitle="Manage your decentralized domain portfolio"
+          showBackButton
+          backHref="/"
+        >
           {/* Dialog for adding new domain */}
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
@@ -151,7 +147,7 @@ const DomainsPage: React.FC = () => {
               </form>
             </DialogContent>
           </Dialog>
-        </div>
+        </PageHeader>
 
         {domainNames.length === 0 ? (
           <div className="text-center py-20">

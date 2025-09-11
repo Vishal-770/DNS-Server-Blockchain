@@ -28,15 +28,49 @@ export default function Home() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center space-y-4 animate-fade-in">
-          <LoadingSpinner size="lg" />
-          <h2 className="text-2xl font-semibold text-foreground">
-            Loading DNS Platform
-          </h2>
-          <p className="text-muted-foreground">
-            Preparing your decentralized domain experience...
-          </p>
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 flex items-center justify-center relative overflow-hidden">
+        {/* Background decorative elements */}
+        <div className="absolute inset-0 bg-grid-pattern opacity-[0.02]" />
+        <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-primary/10 rounded-full blur-xl animate-pulse" />
+        <div className="absolute bottom-1/3 right-1/4 w-24 h-24 bg-primary/5 rounded-full blur-lg animate-pulse delay-1000" />
+
+        <div className="text-center space-y-8 animate-fade-in max-w-lg mx-auto px-6 relative z-10">
+          {/* Enhanced spinner with glow effect */}
+          <div className="relative flex justify-center">
+            <div className="relative">
+              <LoadingSpinner size="lg" />
+              <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping" />
+              <div className="absolute inset-2 bg-primary/10 rounded-full animate-pulse" />
+            </div>
+          </div>
+
+          {/* Title and description */}
+          <div className="space-y-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
+              Loading DNS Platform
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-md mx-auto leading-relaxed">
+              Preparing your decentralized domain experience...
+            </p>
+          </div>
+
+          {/* Animated dots */}
+          <div className="flex justify-center items-center space-x-3">
+            <div className="h-3 w-3 bg-primary rounded-full animate-bounce" />
+            <div className="h-3 w-3 bg-primary rounded-full animate-bounce delay-200" />
+            <div className="h-3 w-3 bg-primary rounded-full animate-bounce delay-400" />
+          </div>
+
+          {/* Progress indicators */}
+          <div className="space-y-3 mt-8">
+            <div className="flex justify-center items-center space-x-2 text-sm text-muted-foreground">
+              <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+              <span>Connecting to blockchain...</span>
+            </div>
+            <div className="w-48 mx-auto bg-muted rounded-full h-1.5 overflow-hidden">
+              <div className="bg-primary h-full rounded-full animate-loading-progress" />
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -79,7 +113,7 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background mt-16">
       {/* Hero Section */}
       <section className="relative px-4 py-20 bg-gradient-to-br from-primary/5 to-primary/10">
         <div className="container mx-auto max-w-6xl">

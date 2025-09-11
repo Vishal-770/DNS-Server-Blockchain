@@ -58,16 +58,19 @@ export function LoadingCard({ className }: LoadingCardProps) {
   return (
     <div
       className={cn(
-        "border border-border rounded-lg p-6 bg-card animate-pulse",
+        "border border-border rounded-lg p-6 bg-card text-card-foreground animate-pulse",
         className
       )}
     >
       <div className="space-y-4">
-        <LoadingSkeleton className="h-6 w-3/4" />
+        <div className="flex items-center gap-3">
+          <LoadingSkeleton className="h-6 w-6 rounded-full" />
+          <LoadingSkeleton className="h-6 w-3/4" />
+        </div>
         <LoadingSkeleton count={3} className="h-4" />
         <div className="flex gap-2 pt-2">
-          <LoadingSkeleton className="h-8 w-20" />
-          <LoadingSkeleton className="h-8 w-24" />
+          <LoadingSkeleton className="h-8 w-20 rounded-md" />
+          <LoadingSkeleton className="h-8 w-24 rounded-md" />
         </div>
       </div>
     </div>
@@ -84,12 +87,16 @@ export function LoadingPage({
   subtitle,
 }: LoadingPageProps) {
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="text-center space-y-6 animate-fade-in">
-        <LoadingSpinner size="lg" />
-        <div className="space-y-2">
+    <div className="min-h-[calc(100vh-80px)] bg-background flex items-center justify-center p-4">
+      <div className="text-center space-y-6 animate-fade-in max-w-md w-full">
+        <div className="flex justify-center">
+          <LoadingSpinner size="lg" />
+        </div>
+        <div className="space-y-3">
           <h2 className="text-2xl font-semibold text-foreground">{title}</h2>
-          {subtitle && <p className="text-muted-foreground">{subtitle}</p>}
+          {subtitle && (
+            <p className="text-muted-foreground leading-relaxed">{subtitle}</p>
+          )}
         </div>
       </div>
     </div>
