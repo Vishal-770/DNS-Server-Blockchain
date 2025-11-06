@@ -2,6 +2,12 @@ import { readContract, getContract } from "thirdweb";
 import { sepolia } from "thirdweb/chains";
 import client from "./client.js";
 import { contractAddress } from "./Contract.js";
+import {
+  buildCacheKey,
+  getCachedRecords,
+  setCachedRecords,
+  CACHE_TTL_SECONDS,
+} from "./cache.js";
 
 // Factory contract (manages domain -> domainContract)
 const contract = getContract({
@@ -41,6 +47,28 @@ export function isValidDomain(domain) {
   return domainRegex.test(domain) && domain.length <= 253;
 }
 
+function normalizeRecords(typeString, records) {
+  if (!Array.isArray(records)) return [];
+
+  if (typeString === "MX") {
+    return records.map((mx) => ({
+      priority: Number(mx.priority),
+      value: mx.value,
+    }));
+  }
+
+  if (typeString === "SRV") {
+    return records.map((srv) => ({
+      priority: Number(srv.priority),
+      weight: Number(srv.weight),
+      port: Number(srv.port),
+      target: srv.target,
+    }));
+  }
+
+  return records;
+}
+
 /**
  * Query DNS-like records for a domain
  * @param {string} domain - The domain name (e.g. "wallstreetwheels.store")
@@ -63,6 +91,20 @@ export async function getDomainIP(domain, type) {
 
   if (!["A", "AAAA", "CNAME", "TXT", "NS", "MX", "SRV"].includes(typeString)) {
     throw new Error(`Unsupported record type: ${typeString}`);
+  }
+
+  const cacheKey = buildCacheKey(domain, typeString);
+
+  try {
+    const cached = await getCachedRecords(cacheKey);
+    if (cached) {
+      console.log(
+        `📦 Cache hit for ${domain} (${typeString}), TTL ${CACHE_TTL_SECONDS}s`
+      );
+      return JSON.parse(cached);
+    }
+  } catch (cacheError) {
+    console.warn(`⚠️ Redis read failed for ${cacheKey}:`, cacheError.message);
   }
 
   try {
@@ -122,7 +164,22 @@ export async function getDomainIP(domain, type) {
     console.log(
       `Retrieved ${result?.length || 0} records for ${domain} (${typeString})`
     );
-    return result || [];
+
+    const normalized = normalizeRecords(typeString, result || []);
+
+    try {
+      await setCachedRecords(cacheKey, JSON.stringify(normalized));
+      console.log(
+        `📝 Cached ${normalized.length} record(s) for ${domain} (${typeString})`
+      );
+    } catch (cacheWriteError) {
+      console.warn(
+        `⚠️ Redis write failed for ${cacheKey}:`,
+        cacheWriteError.message
+      );
+    }
+
+    return normalized;
   } catch (error) {
     console.error(
       `Blockchain query failed for ${domain} (${typeString}):`,
