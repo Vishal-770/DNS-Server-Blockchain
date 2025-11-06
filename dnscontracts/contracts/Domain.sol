@@ -118,3 +118,9 @@ contract Domain {
         typesList[6] = "SRV";
     }
 }
+
+
+
+
+
+

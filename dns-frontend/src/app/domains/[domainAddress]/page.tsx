@@ -16,10 +16,14 @@ import {
   Server,
   FileText,
   ExternalLink,
+  Copy,
+  Sparkles,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { LoadingCard, LoadingSkeleton } from "@/components/ui/loading";
 import { PageHeader } from "@/components/ui/page-header";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 const DomainPage: React.FC = () => {
   const { domainAddress } = useParams();
@@ -118,63 +122,90 @@ const DomainPage: React.FC = () => {
     );
   }
 
-  const records = [
-    { type: "A", data: ARecord },
-    { type: "NS", data: NSRecord },
-    { type: "TXT", data: TXTRecord },
-    { type: "AAAA", data: AAAARecord },
-    { type: "CNAME", data: CNAMERecord },
+  const recordDefinitions = [
+    {
+      type: "A",
+      title: "A record",
+      description: "IPv4 address",
+      Icon: Globe,
+      data: (ARecord as string[] | undefined) ?? [],
+    },
+    {
+      type: "AAAA",
+      title: "AAAA record",
+      description: "IPv6 address",
+      Icon: Globe,
+      data: (AAAARecord as string[] | undefined) ?? [],
+    },
+    {
+      type: "CNAME",
+      title: "CNAME record",
+      description: "Canonical alias",
+      Icon: ExternalLink,
+      data: (CNAMERecord as string[] | undefined) ?? [],
+    },
+    {
+      type: "TXT",
+      title: "TXT record",
+      description: "Verification metadata",
+      Icon: FileText,
+      data: (TXTRecord as string[] | undefined) ?? [],
+    },
+    {
+      type: "NS",
+      title: "NS record",
+      description: "Name servers",
+      Icon: Server,
+      data: (NSRecord as string[] | undefined) ?? [],
+    },
     {
       type: "MX",
-      data: MXRecord?.map((record) => `${record.priority} ${record.value}`),
+      title: "MX record",
+      description: "Mail exchange",
+      Icon: Mail,
+      data:
+        (
+          MXRecord as { priority: bigint | number; value: string }[] | undefined
+        )?.map((record) => `${Number(record.priority)} ${record.value}`) ?? [],
     },
     {
       type: "SRV",
-      data: SRVRecord?.map(
-        (record) =>
-          `${record.priority} ${record.weight} ${record.port} ${record.target}`
-      ),
+      title: "SRV record",
+      description: "Service discovery",
+      Icon: Database,
+      data:
+        (
+          SRVRecord as
+            | {
+                priority: bigint | number;
+                weight: bigint | number;
+                port: bigint | number;
+                target: string;
+              }[]
+            | undefined
+        )?.map(
+          (record) =>
+            `${Number(record.priority)} ${Number(record.weight)} ${Number(
+              record.port
+            )} ${record.target}`
+        ) ?? [],
     },
   ];
 
-  const getRecordIcon = (type: string) => {
-    switch (type) {
-      case "A":
-      case "AAAA":
-        return <Globe className="h-5 w-5 text-primary" />;
-      case "CNAME":
-        return <ExternalLink className="h-5 w-5 text-primary" />;
-      case "TXT":
-        return <FileText className="h-5 w-5 text-primary" />;
-      case "NS":
-        return <Server className="h-5 w-5 text-primary" />;
-      case "MX":
-        return <Mail className="h-5 w-5 text-primary" />;
-      case "SRV":
-        return <Database className="h-5 w-5 text-primary" />;
-      default:
-        return <Globe className="h-5 w-5 text-muted-foreground" />;
-    }
-  };
+  const totalRecords = recordDefinitions.reduce(
+    (acc, record) => acc + record.data.length,
+    0
+  );
 
-  const getRecordDescription = (type: string) => {
-    switch (type) {
-      case "A":
-        return "IPv4 Address";
-      case "AAAA":
-        return "IPv6 Address";
-      case "CNAME":
-        return "Canonical Name";
-      case "TXT":
-        return "Text Record";
-      case "NS":
-        return "Name Server";
-      case "MX":
-        return "Mail Exchange";
-      case "SRV":
-        return "Service Record";
-      default:
-        return "DNS Record";
+  const hasRecords = recordDefinitions.some((record) => record.data.length);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(domainAddress as string);
+      toast.success("Contract address copied");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to copy address");
     }
   };
 
@@ -200,8 +231,66 @@ const DomainPage: React.FC = () => {
           </Link>
         </PageHeader>
 
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
+          <Card className="lg:col-span-2 border shadow-md">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex flex-wrap items-center gap-3 text-lg">
+                <Globe className="h-5 w-5 text-primary" />
+                <span className="font-semibold">{domainAddress}</span>
+                <Badge variant="secondary" className="rounded-full px-3 py-1">
+                  {totalRecords} {totalRecords === 1 ? "record" : "records"}
+                </Badge>
+                <Badge
+                  className="rounded-full px-3 py-1"
+                  variant={hasRecords ? "default" : "outline"}
+                >
+                  {hasRecords ? "Active" : "No Records"}
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-wrap items-center gap-3 pt-0">
+              <Button
+                variant="outline"
+                className="flex items-center gap-2"
+                onClick={handleCopy}
+              >
+                <Copy className="h-4 w-4" />
+                Copy contract address
+              </Button>
+              <Link href={`/domains/${domainAddress}/manage`}>
+                <Button
+                  variant="ghost"
+                  className="flex items-center gap-2 text-muted-foreground"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Edit records
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card className="border shadow-md bg-muted/40">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                <Sparkles className="h-4 w-4 text-primary" />
+                Quick tips
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm text-muted-foreground pt-0">
+              <p>
+                Records update on-chain instantly but may take time to
+                propagate.
+              </p>
+              <p>
+                Use the manage panel to add, edit, or remove DNS records
+                securely.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 mb-8">
-          {records.map((record, index) => (
+          {recordDefinitions.map((record, index) => (
             <Card
               key={record.type}
               className="shadow-md hover:shadow-lg transition-all duration-300 border bg-card text-card-foreground animate-slide-up"
@@ -209,11 +298,13 @@ const DomainPage: React.FC = () => {
             >
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-3 text-lg">
-                  {getRecordIcon(record.type)}
+                  <record.Icon className="h-5 w-5 text-primary" />
                   <div>
-                    <div className="font-semibold">{record.type} Record</div>
+                    <div className="font-semibold capitalize">
+                      {record.title}
+                    </div>
                     <div className="text-sm font-normal text-muted-foreground">
-                      {getRecordDescription(record.type)}
+                      {record.description}
                     </div>
                   </div>
                 </CardTitle>
@@ -244,7 +335,7 @@ const DomainPage: React.FC = () => {
           ))}
         </div>
 
-        {records.every((r) => !r.data || r.data.length === 0) && (
+        {!hasRecords && (
           <div className="text-center bg-card rounded-lg p-12 shadow-lg border animate-fade-in">
             <Globe className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-foreground mb-2">

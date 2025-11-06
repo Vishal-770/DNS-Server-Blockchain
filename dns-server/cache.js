@@ -9,9 +9,13 @@ const {
   REDIS_USERNAME,
   REDIS_PASSWORD,
   REDIS_CACHE_TTL,
+  RATE_LIMIT_MAX_REQUESTS,
+  RATE_LIMIT_WINDOW_SECONDS,
 } = process.env;
 
 const ttlSeconds = Number(REDIS_CACHE_TTL) || 60;
+const rateLimitMaxRequests = Number(RATE_LIMIT_MAX_REQUESTS) || 10;
+const rateLimitWindowSeconds = Number(RATE_LIMIT_WINDOW_SECONDS) || 60;
 
 const client = createClient({
   username: REDIS_USERNAME || "default",
@@ -57,3 +61,30 @@ export function buildCacheKey(domain, type) {
 }
 
 export const CACHE_TTL_SECONDS = ttlSeconds;
+export const RATE_LIMIT_MAX = rateLimitMaxRequests;
+export const RATE_LIMIT_WINDOW = rateLimitWindowSeconds;
+
+export async function consumeRateLimit(identifier) {
+  await ensureConnected();
+
+  const key = `rate:${identifier}`;
+  const count = await client.incr(key);
+
+  if (count === 1) {
+    await client.expire(key, rateLimitWindowSeconds);
+  }
+
+  let ttl = await client.ttl(key);
+  if (ttl < 0) {
+    await client.expire(key, rateLimitWindowSeconds);
+    ttl = rateLimitWindowSeconds;
+  }
+
+  return {
+    allowed: count <= rateLimitMaxRequests,
+    count,
+    ttl,
+    limit: rateLimitMaxRequests,
+    window: rateLimitWindowSeconds,
+  };
+}

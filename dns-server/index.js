@@ -3,6 +3,11 @@ import dgram from "dgram";
 import dnsPacket from "dns-packet";
 import { db } from "./db.js";
 import { getDomainIP, getTypeString } from "./util.js";
+import {
+  consumeRateLimit,
+  RATE_LIMIT_MAX,
+  RATE_LIMIT_WINDOW,
+} from "./cache.js";
 
 const server = dgram.createSocket("udp4");
 const upstream = { address: "8.8.8.8", port: 53 }; // Fallback DNS (Google)
@@ -250,9 +255,41 @@ server.on("message", async (msg, rinfo) => {
     const req = dnsPacket.decode(msg);
     const question = req.questions[0]; // handle first question only
     const { name, type } = question;
+    const requesterIp = rinfo.address;
+
+    try {
+      const rate = await consumeRateLimit(requesterIp);
+      if (!rate.allowed) {
+        const ttl = rate.ttl >= 0 ? rate.ttl : RATE_LIMIT_WINDOW;
+        console.warn(
+          `🚫 Rate limit exceeded for ${requesterIp} (${rate.count}/${rate.limit})`
+        );
+
+        const response = dnsPacket.encode({
+          type: "response",
+          id: req.id,
+          flags: req.flags,
+          questions: req.questions,
+          answers: [],
+          rcode: "REFUSED",
+        });
+
+        server.send(response, rinfo.port, rinfo.address);
+        console.log(`⏱️ Rate limited response sent. Retry after ~${ttl}s`);
+        return;
+      } else if (rate.count === RATE_LIMIT_MAX) {
+        console.warn(
+          `⚠️ ${requesterIp} is at the rate limit (${RATE_LIMIT_MAX}/${RATE_LIMIT_WINDOW}s)`
+        );
+      }
+    } catch (rateError) {
+      console.warn(
+        `⚠️ Rate limiting check failed for ${requesterIp}: ${rateError.message}`
+      );
+    }
 
     console.log(
-      `📥 Query: ${name} (type ${type}) from ${rinfo.address}:${rinfo.port}`
+      `📥 Query: ${name} (type ${type}) from ${requesterIp}:${rinfo.port}`
     );
 
     let answers = null;
@@ -380,7 +417,6 @@ process.on("SIGTERM", () => {
     process.exit(0);
   });
 });
-
 
 process.on("uncaughtException", (err) => {
   console.error("❌ Uncaught Exception:", err);
