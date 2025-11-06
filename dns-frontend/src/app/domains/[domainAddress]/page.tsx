@@ -35,6 +35,18 @@ const DomainPage: React.FC = () => {
     chain: sepolia,
   });
 
+  const { data: domainNameData, isPending: domainNamePending } =
+    useReadContract({
+      contract,
+      method: "function domainName() view returns (string)",
+      params: [],
+    });
+
+  const domainLabel =
+    typeof domainNameData === "string" && domainNameData.length > 0
+      ? domainNameData
+      : resolvedDomain;
+
   // Fetch DNS records
   const { data: ARecord, isPending: aPending } = useReadContract({
     contract,
@@ -103,7 +115,8 @@ const DomainPage: React.FC = () => {
     cnamePending ||
     mxPending ||
     srvPending ||
-    subdomainPending;
+    subdomainPending ||
+    domainNamePending;
 
   if (isLoading) {
     return (
@@ -116,9 +129,16 @@ const DomainPage: React.FC = () => {
           <PageHeader
             title="Domain Records"
             subtitle={
-              <span>
-                DNS records for:{" "}
-                <span className="font-mono text-primary">{resolvedDomain}</span>
+              <span className="flex flex-col">
+                <span>
+                  DNS records for:{" "}
+                  <span className="font-semibold text-primary">
+                    {domainLabel}
+                  </span>
+                </span>
+                <span className="text-xs text-muted-foreground font-mono">
+                  Contract: {resolvedDomain}
+                </span>
               </span>
             }
             showBackButton
@@ -230,9 +250,16 @@ const DomainPage: React.FC = () => {
         <PageHeader
           title="Domain Records"
           subtitle={
-            <span>
-              DNS records for:{" "}
-              <span className="font-mono text-primary">{resolvedDomain}</span>
+            <span className="flex flex-col">
+              <span>
+                DNS records for:{" "}
+                <span className="font-semibold text-primary">
+                  {domainLabel}
+                </span>
+              </span>
+              <span className="text-xs text-muted-foreground font-mono">
+                Contract: {resolvedDomain}
+              </span>
             </span>
           }
           showBackButton
@@ -251,7 +278,12 @@ const DomainPage: React.FC = () => {
             <CardHeader className="pb-4">
               <CardTitle className="flex flex-wrap items-center gap-3 text-lg">
                 <Globe className="h-5 w-5 text-primary" />
-                <span className="font-semibold">{resolvedDomain}</span>
+                <span className="flex flex-col">
+                  <span className="font-semibold">{domainLabel}</span>
+                  <span className="text-xs font-mono text-muted-foreground">
+                    {resolvedDomain}
+                  </span>
+                </span>
                 <Badge variant="secondary" className="rounded-full px-3 py-1">
                   {totalRecords} {totalRecords === 1 ? "record" : "records"}
                 </Badge>
@@ -322,7 +354,7 @@ const DomainPage: React.FC = () => {
             {hasSubdomains ? (
               <div className="space-y-3">
                 {subdomainList.map((label) => {
-                  const fqdn = `${label}.${resolvedDomain}`;
+                  const fqdn = `${label}.${domainLabel}`;
                   return (
                     <div
                       key={label}
@@ -362,7 +394,7 @@ const DomainPage: React.FC = () => {
                 <p>
                   Example:{" "}
                   <span className="font-mono text-foreground">
-                    {`blog.${resolvedDomain}`}
+                    {`blog.${domainLabel}`}
                   </span>
                 </p>
               </div>

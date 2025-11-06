@@ -144,6 +144,17 @@ const DNSManagementDashboard: React.FC = () => {
     chain: sepolia,
   });
 
+  const { data: domainNameData } = useReadContract({
+    contract,
+    method: "function domainName() view returns (string)",
+    params: [],
+  });
+
+  const domainLabel =
+    typeof domainNameData === "string" && domainNameData.length > 0
+      ? domainNameData
+      : resolvedDomain;
+
   const {
     data: subdomainLabels,
     refetch: refetchSubdomains,
@@ -679,9 +690,16 @@ const DNSManagementDashboard: React.FC = () => {
         <PageHeader
           title="DNS Management"
           subtitle={
-            <span>
-              Manage DNS records for domain:{" "}
-              <span className="font-mono text-primary">{resolvedDomain}</span>
+            <span className="flex flex-col">
+              <span>
+                Manage DNS records for domain:{" "}
+                <span className="font-semibold text-primary">
+                  {domainLabel}
+                </span>
+              </span>
+              <span className="text-xs text-muted-foreground font-mono">
+                Contract: {resolvedDomain}
+              </span>
             </span>
           }
           showBackButton
@@ -755,7 +773,7 @@ const DNSManagementDashboard: React.FC = () => {
                   {subdomainList.length > 0 ? (
                     subdomainList.map((label) => (
                       <SelectItem key={label} value={label}>
-                        {label}.{resolvedDomain}
+                        {label}.{domainLabel}
                       </SelectItem>
                     ))
                   ) : (
@@ -1044,7 +1062,7 @@ const DNSManagementDashboard: React.FC = () => {
                 Create Subdomain
               </DialogTitle>
               <p className="text-sm text-muted-foreground">
-                Define a new subdomain under {resolvedDomain} and secure it with
+                Define a new subdomain under {domainLabel} and secure it with
                 your owner password.
               </p>
             </DialogHeader>
@@ -1067,7 +1085,7 @@ const DNSManagementDashboard: React.FC = () => {
                 />
                 <p className="text-xs text-muted-foreground">
                   Full address will be {newSubdomain.label || "your-label"}.
-                  {resolvedDomain}
+                  {domainLabel}
                 </p>
               </div>
               <div className="space-y-2">
@@ -1113,9 +1131,7 @@ const DNSManagementDashboard: React.FC = () => {
                 }}
                 onTransactionConfirmed={() => {
                   const label = newSubdomain.label.trim();
-                  toast.success(
-                    `${label}.${resolvedDomain} created successfully`
-                  );
+                  toast.success(`${label}.${domainLabel} created successfully`);
                   resetSubdomainForm();
                   setSelectedScope("subdomain");
                   setActiveSubdomain(label);
