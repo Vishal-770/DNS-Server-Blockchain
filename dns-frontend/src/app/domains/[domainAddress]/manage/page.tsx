@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { useParams } from "next/navigation";
+import React, { useEffect, useMemo, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
 import { getContract, prepareContractCall } from "thirdweb";
 import { sepolia } from "thirdweb/chains";
 import { TransactionButton, useReadContract } from "thirdweb/react";
@@ -37,6 +37,7 @@ import {
   ExternalLink,
   Mail,
   Database,
+  Layers,
 } from "lucide-react";
 import { LoadingPage } from "@/components/ui/loading";
 import { PageHeader } from "@/components/ui/page-header";
@@ -63,6 +64,8 @@ interface SRVRecord {
 
 const DNSManagementDashboard: React.FC = () => {
   const { domainAddress } = useParams();
+  const searchParams = useSearchParams();
+  const resolvedDomain = domainAddress as string;
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -75,6 +78,16 @@ const DNSManagementDashboard: React.FC = () => {
     record: DNSRecord | MXRecord | SRVRecord | null;
     recordType: "standard" | "mx" | "srv";
   }>({ isOpen: false, record: null, recordType: "standard" });
+
+  const [selectedScope, setSelectedScope] = useState<"root" | "subdomain">(
+    "root"
+  );
+  const [activeSubdomain, setActiveSubdomain] = useState<string | null>(null);
+  const [isCreateSubdomainOpen, setIsCreateSubdomainOpen] = useState(false);
+  const [newSubdomain, setNewSubdomain] = useState({
+    label: "",
+    password: "",
+  });
 
   const [newRecord, setNewRecord] = useState({
     type: "A",
@@ -127,9 +140,53 @@ const DNSManagementDashboard: React.FC = () => {
 
   const contract = getContract({
     client,
-    address: domainAddress as string,
+    address: resolvedDomain,
     chain: sepolia,
   });
+
+  const {
+    data: subdomainLabels,
+    refetch: refetchSubdomains,
+    isPending: subdomainsPending,
+  } = useReadContract({
+    contract,
+    method: "function listSubdomains() view returns (string[])",
+    params: [],
+  });
+
+  const subdomainList = useMemo(
+    () => (Array.isArray(subdomainLabels) ? (subdomainLabels as string[]) : []),
+    [subdomainLabels]
+  );
+
+  const initialSubdomain = searchParams.get("sub");
+
+  useEffect(() => {
+    if (initialSubdomain) {
+      setSelectedScope("subdomain");
+      setActiveSubdomain(initialSubdomain);
+    }
+  }, [initialSubdomain]);
+
+  useEffect(() => {
+    if (selectedScope !== "subdomain") {
+      return;
+    }
+
+    if (subdomainList.length === 0) {
+      setActiveSubdomain(null);
+      return;
+    }
+
+    if (!activeSubdomain || !subdomainList.includes(activeSubdomain)) {
+      setActiveSubdomain(subdomainList[0]);
+    }
+  }, [selectedScope, subdomainList, activeSubdomain]);
+
+  const isSubdomainScope =
+    selectedScope === "subdomain" && Boolean(activeSubdomain);
+  const currentSubdomain = activeSubdomain ?? "";
+  const canMutateRecords = selectedScope === "root" || Boolean(activeSubdomain);
 
   // Read all record types
   const {
@@ -182,16 +239,103 @@ const DNSManagementDashboard: React.FC = () => {
     params: ["NS"],
   });
 
+  const {
+    data: subARecords,
+    refetch: refetchSubA,
+    isPending: subAPending,
+  } = useReadContract({
+    queryOptions: {
+      enabled: isSubdomainScope,
+    },
+    contract,
+    method:
+      "function getSubdomainRecord(string label, string recordType) view returns (string[])",
+    params: [currentSubdomain, "A"],
+  });
+
+  const {
+    data: subAAAARecords,
+    refetch: refetchSubAAAA,
+    isPending: subAAAAPending,
+  } = useReadContract({
+    queryOptions: {
+      enabled: isSubdomainScope,
+    },
+    contract,
+    method:
+      "function getSubdomainRecord(string label, string recordType) view returns (string[])",
+    params: [currentSubdomain, "AAAA"],
+  });
+
+  const {
+    data: subCNAMERecords,
+    refetch: refetchSubCNAME,
+    isPending: subCNAMEPending,
+  } = useReadContract({
+    queryOptions: {
+      enabled: isSubdomainScope,
+    },
+    contract,
+    method:
+      "function getSubdomainRecord(string label, string recordType) view returns (string[])",
+    params: [currentSubdomain, "CNAME"],
+  });
+
+  const {
+    data: subTXTRecords,
+    refetch: refetchSubTXT,
+    isPending: subTXTPending,
+  } = useReadContract({
+    queryOptions: {
+      enabled: isSubdomainScope,
+    },
+    contract,
+    method:
+      "function getSubdomainRecord(string label, string recordType) view returns (string[])",
+    params: [currentSubdomain, "TXT"],
+  });
+
+  const {
+    data: subNSRecords,
+    refetch: refetchSubNS,
+    isPending: subNSPending,
+  } = useReadContract({
+    queryOptions: {
+      enabled: isSubdomainScope,
+    },
+    contract,
+    method:
+      "function getSubdomainRecord(string label, string recordType) view returns (string[])",
+    params: [currentSubdomain, "NS"],
+  });
+
   // Read MX records
   const {
     data: MXRecords,
     refetch: refetchMX,
     isPending: mxPending,
   } = useReadContract({
+    queryOptions: {
+      enabled: selectedScope === "root",
+    },
     contract,
     method:
       "function getMX() view returns ((uint256 priority, string value)[])",
     params: [],
+  });
+
+  const {
+    data: MXRecordsSub,
+    refetch: refetchMXSub,
+    isPending: mxSubPending,
+  } = useReadContract({
+    queryOptions: {
+      enabled: selectedScope === "subdomain" && Boolean(activeSubdomain),
+    },
+    contract,
+    method:
+      "function getSubdomainMX(string label) view returns ((uint256 priority, string value)[])",
+    params: [activeSubdomain || ""],
   });
 
   // Read SRV records
@@ -200,10 +344,27 @@ const DNSManagementDashboard: React.FC = () => {
     refetch: refetchSRV,
     isPending: srvPending,
   } = useReadContract({
+    queryOptions: {
+      enabled: selectedScope === "root",
+    },
     contract,
     method:
       "function getSRV() view returns ((uint256 priority, uint256 weight, uint256 port, string target)[])",
     params: [],
+  });
+
+  const {
+    data: SRVRecordsSub,
+    refetch: refetchSRVSub,
+    isPending: srvSubPending,
+  } = useReadContract({
+    queryOptions: {
+      enabled: selectedScope === "subdomain" && Boolean(activeSubdomain),
+    },
+    contract,
+    method:
+      "function getSubdomainSRV(string label) view returns ((uint256 priority, uint256 weight, uint256 port, string target)[])",
+    params: [activeSubdomain || ""],
   });
 
   const recordTypes = [
@@ -255,27 +416,74 @@ const DNSManagementDashboard: React.FC = () => {
   const getAllRecords = (): (DNSRecord | MXRecord | SRVRecord)[] => {
     const records: (DNSRecord | MXRecord | SRVRecord)[] = [];
 
-    ARecords?.forEach((value, index) => {
+    const toStringArray = (value: unknown) =>
+      Array.isArray(value) ? (value as string[]) : [];
+    const toMxArray = (
+      value: unknown
+    ): { priority: bigint | number; value: string }[] =>
+      Array.isArray(value)
+        ? (value as { priority: bigint | number; value: string }[])
+        : [];
+    const toSrvArray = (
+      value: unknown
+    ): {
+      priority: bigint | number;
+      weight: bigint | number;
+      port: bigint | number;
+      target: string;
+    }[] =>
+      Array.isArray(value)
+        ? (value as {
+            priority: bigint | number;
+            weight: bigint | number;
+            port: bigint | number;
+            target: string;
+          }[])
+        : [];
+
+    const activeARecords = isSubdomainScope
+      ? toStringArray(subARecords)
+      : toStringArray(ARecords);
+    const activeAAAARecords = isSubdomainScope
+      ? toStringArray(subAAAARecords)
+      : toStringArray(AAAARecords);
+    const activeCNAMERecords = isSubdomainScope
+      ? toStringArray(subCNAMERecords)
+      : toStringArray(CNAMERecords);
+    const activeTXTRecords = isSubdomainScope
+      ? toStringArray(subTXTRecords)
+      : toStringArray(TXTRecords);
+    const activeNSRecords = isSubdomainScope
+      ? toStringArray(subNSRecords)
+      : toStringArray(NSRecords);
+    const activeMXRecords = isSubdomainScope
+      ? toMxArray(MXRecordsSub)
+      : toMxArray(MXRecords);
+    const activeSRVRecords = isSubdomainScope
+      ? toSrvArray(SRVRecordsSub)
+      : toSrvArray(SRVRecords);
+
+    activeARecords.forEach((value, index) => {
       records.push({ type: "A", value, index });
     });
 
-    AAAARecords?.forEach((value, index) => {
+    activeAAAARecords.forEach((value, index) => {
       records.push({ type: "AAAA", value, index });
     });
 
-    CNAMERecords?.forEach((value, index) => {
+    activeCNAMERecords.forEach((value, index) => {
       records.push({ type: "CNAME", value, index });
     });
 
-    TXTRecords?.forEach((value, index) => {
+    activeTXTRecords.forEach((value, index) => {
       records.push({ type: "TXT", value, index });
     });
 
-    NSRecords?.forEach((value, index) => {
+    activeNSRecords.forEach((value, index) => {
       records.push({ type: "NS", value, index });
     });
 
-    MXRecords?.forEach((record, index) => {
+    activeMXRecords.forEach((record, index) => {
       records.push({
         priority: Number(record.priority),
         value: record.value,
@@ -284,7 +492,7 @@ const DNSManagementDashboard: React.FC = () => {
       } as MXRecord & { type: string });
     });
 
-    SRVRecords?.forEach((record, index) => {
+    activeSRVRecords.forEach((record, index) => {
       records.push({
         priority: Number(record.priority),
         weight: Number(record.weight),
@@ -306,6 +514,17 @@ const DNSManagementDashboard: React.FC = () => {
     refetchNS();
     refetchMX();
     refetchSRV();
+    refetchSubdomains();
+
+    if (activeSubdomain) {
+      refetchSubA();
+      refetchSubAAAA();
+      refetchSubCNAME();
+      refetchSubTXT();
+      refetchSubNS();
+      refetchMXSub();
+      refetchSRVSub();
+    }
   };
 
   const handleAddRecord = () => {
@@ -370,6 +589,11 @@ const DNSManagementDashboard: React.FC = () => {
     setIsAddDialogOpen(false);
   };
 
+  const resetSubdomainForm = () => {
+    setNewSubdomain({ label: "", password: "" });
+    setIsCreateSubdomainOpen(false);
+  };
+
   const resetEditForm = () => {
     setEditRecord({ type: "", value: "", index: 0, password: "" });
     setIsEditDialogOpen(false);
@@ -410,7 +634,7 @@ const DNSManagementDashboard: React.FC = () => {
 
   const allRecords = getAllRecords();
 
-  const isLoading =
+  const rootLoading =
     aPending ||
     aaaaPending ||
     cnamePending ||
@@ -419,10 +643,31 @@ const DNSManagementDashboard: React.FC = () => {
     mxPending ||
     srvPending;
 
-  if (isLoading) {
+  const subdomainRecordsLoading =
+    selectedScope === "subdomain" && Boolean(activeSubdomain)
+      ? subAPending ||
+        subAAAAPending ||
+        subCNAMEPending ||
+        subTXTPending ||
+        subNSPending ||
+        mxSubPending ||
+        srvSubPending
+      : false;
+
+  const shouldShowLoading =
+    selectedScope === "subdomain"
+      ? subdomainsPending || subdomainRecordsLoading
+      : rootLoading;
+
+  if (shouldShowLoading) {
+    const scopeTitle =
+      selectedScope === "subdomain" && activeSubdomain
+        ? `Loading ${activeSubdomain} records`
+        : "Loading DNS Records";
+
     return (
       <LoadingPage
-        title="Loading DNS Records"
+        title={scopeTitle}
         subtitle="Fetching domain configuration from blockchain..."
       />
     );
@@ -436,47 +681,113 @@ const DNSManagementDashboard: React.FC = () => {
           subtitle={
             <span>
               Manage DNS records for domain:{" "}
-              <span className="font-mono text-primary">{domainAddress}</span>
+              <span className="font-mono text-primary">{resolvedDomain}</span>
             </span>
           }
           showBackButton
-          backHref={`/domains/${domainAddress}`}
+          backHref={`/domains/${resolvedDomain}`}
         >
-          <Button
-            onClick={handleAddRecord}
-            className="flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all duration-200"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Add Record</span>
-            <span className="sm:hidden">Add DNS</span>
-          </Button>
-          <Button
-            onClick={handleAddMXRecord}
-            variant="outline"
-            className="flex items-center justify-center gap-2"
-          >
-            <Mail className="h-4 w-4" />
-            <span className="hidden sm:inline">Add MX</span>
-            <span className="sm:hidden">MX</span>
-          </Button>
-          <Button
-            onClick={handleAddSRVRecord}
-            variant="outline"
-            className="flex items-center justify-center gap-2"
-          >
-            <Database className="h-4 w-4" />
-            <span className="hidden sm:inline">Add SRV</span>
-            <span className="sm:hidden">SRV</span>
-          </Button>
-        </PageHeader>{" "}
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Button
+              onClick={handleAddRecord}
+              className="flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all duration-200"
+              disabled={!canMutateRecords}
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Add Record</span>
+              <span className="sm:hidden">Add DNS</span>
+            </Button>
+            <Button
+              onClick={handleAddMXRecord}
+              variant="outline"
+              className="flex items-center justify-center gap-2"
+              disabled={!canMutateRecords}
+            >
+              <Mail className="h-4 w-4" />
+              <span className="hidden sm:inline">Add MX</span>
+              <span className="sm:hidden">MX</span>
+            </Button>
+            <Button
+              onClick={handleAddSRVRecord}
+              variant="outline"
+              className="flex items-center justify-center gap-2"
+              disabled={!canMutateRecords}
+            >
+              <Database className="h-4 w-4" />
+              <span className="hidden sm:inline">Add SRV</span>
+              <span className="sm:hidden">SRV</span>
+            </Button>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Select
+              value={selectedScope}
+              onValueChange={(value) => {
+                const scope = value as "root" | "subdomain";
+                setSelectedScope(scope);
+                if (scope === "root") {
+                  setActiveSubdomain(null);
+                } else if (!activeSubdomain && subdomainList.length > 0) {
+                  setActiveSubdomain(subdomainList[0]);
+                }
+              }}
+            >
+              <SelectTrigger className="h-11 min-w-[150px]">
+                <SelectValue placeholder="Select scope" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="root">Root Domain</SelectItem>
+                <SelectItem value="subdomain">Subdomain</SelectItem>
+              </SelectContent>
+            </Select>
+            {selectedScope === "subdomain" && (
+              <Select
+                value={activeSubdomain ?? ""}
+                onValueChange={(value) => {
+                  if (!value) return;
+                  setActiveSubdomain(value);
+                }}
+                disabled={subdomainList.length === 0}
+              >
+                <SelectTrigger className="h-11 min-w-[200px]">
+                  <SelectValue placeholder="Choose subdomain" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subdomainList.length > 0 ? (
+                    subdomainList.map((label) => (
+                      <SelectItem key={label} value={label}>
+                        {label}.{resolvedDomain}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="__no_subdomains__" disabled>
+                      No subdomains
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            )}
+            <Button
+              variant="outline"
+              className="flex items-center gap-2"
+              onClick={() => setIsCreateSubdomainOpen(true)}
+            >
+              <Layers className="h-4 w-4" />
+              New Subdomain
+            </Button>
+          </div>
+        </PageHeader>
         {/* Records Overview */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3 md:gap-4 mb-8">
           {recordTypes.map((recordType) => {
             let count = 0;
             if (recordType.value === "MX") {
-              count = MXRecords?.length || 0;
+              count = isSubdomainScope
+                ? MXRecordsSub?.length || 0
+                : MXRecords?.length || 0;
             } else if (recordType.value === "SRV") {
-              count = SRVRecords?.length || 0;
+              count = isSubdomainScope
+                ? SRVRecordsSub?.length || 0
+                : SRVRecords?.length || 0;
             } else {
               count = allRecords.filter(
                 (r) => "type" in r && r.type === recordType.value
@@ -721,6 +1032,107 @@ const DNSManagementDashboard: React.FC = () => {
             )}
           </CardContent>
         </Card>
+        {/* Create Subdomain Dialog */}
+        <Dialog
+          open={isCreateSubdomainOpen}
+          onOpenChange={setIsCreateSubdomainOpen}
+        >
+          <DialogContent className="max-w-lg">
+            <DialogHeader className="space-y-3">
+              <DialogTitle className="text-xl font-semibold flex items-center gap-3">
+                <Layers className="h-5 w-5 text-primary" />
+                Create Subdomain
+              </DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                Define a new subdomain under {resolvedDomain} and secure it with
+                your owner password.
+              </p>
+            </DialogHeader>
+            <div className="space-y-6 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="subdomainLabel" className="text-sm font-medium">
+                  Subdomain Label
+                </Label>
+                <Input
+                  id="subdomainLabel"
+                  placeholder="e.g., blog"
+                  value={newSubdomain.label}
+                  onChange={(e) =>
+                    setNewSubdomain({
+                      ...newSubdomain,
+                      label: e.target.value,
+                    })
+                  }
+                  className="h-11"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Full address will be {newSubdomain.label || "your-label"}.
+                  {resolvedDomain}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label
+                  htmlFor="subdomainPassword"
+                  className="text-sm font-medium"
+                >
+                  Password
+                </Label>
+                <Input
+                  id="subdomainPassword"
+                  type="password"
+                  placeholder="Enter your domain password"
+                  value={newSubdomain.password}
+                  onChange={(e) =>
+                    setNewSubdomain({
+                      ...newSubdomain,
+                      password: e.target.value,
+                    })
+                  }
+                  className="h-11"
+                />
+              </div>
+            </div>
+            <DialogFooter className="gap-3 pt-4">
+              <Button
+                variant="outline"
+                onClick={resetSubdomainForm}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <TransactionButton
+                className="flex-1"
+                transaction={() => {
+                  const label = newSubdomain.label.trim();
+                  return prepareContractCall({
+                    contract,
+                    method:
+                      "function createSubdomain(string label, string _password)",
+                    params: [label, newSubdomain.password],
+                  });
+                }}
+                onTransactionConfirmed={() => {
+                  const label = newSubdomain.label.trim();
+                  toast.success(
+                    `${label}.${resolvedDomain} created successfully`
+                  );
+                  resetSubdomainForm();
+                  setSelectedScope("subdomain");
+                  setActiveSubdomain(label);
+                  refetchAllRecords();
+                }}
+                onError={(error) => {
+                  toast.error("Failed to create subdomain");
+                  console.error(error);
+                }}
+                disabled={!newSubdomain.label.trim() || !newSubdomain.password}
+              >
+                Create Subdomain
+              </TransactionButton>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {/* Add Record Dialog */}
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogContent className="max-w-lg">
@@ -808,18 +1220,29 @@ const DNSManagementDashboard: React.FC = () => {
               </Button>
               <TransactionButton
                 className="flex-1"
-                transaction={() =>
-                  prepareContractCall({
+                transaction={() => {
+                  const baseParams = [
+                    newRecord.type,
+                    newRecord.value,
+                    newRecord.password,
+                  ] as const;
+
+                  if (selectedScope === "subdomain" && activeSubdomain) {
+                    return prepareContractCall({
+                      contract,
+                      method:
+                        "function addSubdomainRecord(string label, string recordType, string value, string _password)",
+                      params: [activeSubdomain, ...baseParams],
+                    });
+                  }
+
+                  return prepareContractCall({
                     contract,
                     method:
                       "function addRecord(string recordType, string value, string _password)",
-                    params: [
-                      newRecord.type,
-                      newRecord.value,
-                      newRecord.password,
-                    ],
-                  })
-                }
+                    params: [...baseParams],
+                  });
+                }}
                 onTransactionConfirmed={() => {
                   toast.success("DNS record added successfully");
                   resetAddForm();
@@ -829,7 +1252,11 @@ const DNSManagementDashboard: React.FC = () => {
                   toast.error("Failed to add DNS record");
                   console.error(error);
                 }}
-                disabled={!newRecord.value || !newRecord.password}
+                disabled={
+                  !newRecord.value ||
+                  !newRecord.password ||
+                  (selectedScope === "subdomain" && !activeSubdomain)
+                }
               >
                 Add Record
               </TransactionButton>
@@ -901,19 +1328,30 @@ const DNSManagementDashboard: React.FC = () => {
               </Button>
               <TransactionButton
                 className="flex-1"
-                transaction={() =>
-                  prepareContractCall({
+                transaction={() => {
+                  const params = [
+                    editRecord.type,
+                    BigInt(editRecord.index),
+                    editRecord.value,
+                    editRecord.password,
+                  ] as const;
+
+                  if (selectedScope === "subdomain" && activeSubdomain) {
+                    return prepareContractCall({
+                      contract,
+                      method:
+                        "function updateSubdomainRecord(string label, string recordType, uint256 index, string newValue, string _password)",
+                      params: [activeSubdomain, ...params],
+                    });
+                  }
+
+                  return prepareContractCall({
                     contract,
                     method:
                       "function updateRecord(string recordType, uint256 index, string newValue, string _password)",
-                    params: [
-                      editRecord.type,
-                      BigInt(editRecord.index),
-                      editRecord.value,
-                      editRecord.password,
-                    ],
-                  })
-                }
+                    params: [...params],
+                  });
+                }}
                 onTransactionConfirmed={() => {
                   toast.success("DNS record updated successfully");
                   resetEditForm();
@@ -923,7 +1361,11 @@ const DNSManagementDashboard: React.FC = () => {
                   toast.error("Failed to update DNS record");
                   console.error(error);
                 }}
-                disabled={!editRecord.value || !editRecord.password}
+                disabled={
+                  !editRecord.value ||
+                  !editRecord.password ||
+                  (selectedScope === "subdomain" && !activeSubdomain)
+                }
               >
                 Update Record
               </TransactionButton>
@@ -1004,18 +1446,29 @@ const DNSManagementDashboard: React.FC = () => {
               </Button>
               <TransactionButton
                 className="flex-1"
-                transaction={() =>
-                  prepareContractCall({
+                transaction={() => {
+                  const params = [
+                    BigInt(newMXRecord.priority),
+                    newMXRecord.value,
+                    newMXRecord.password,
+                  ] as const;
+
+                  if (selectedScope === "subdomain" && activeSubdomain) {
+                    return prepareContractCall({
+                      contract,
+                      method:
+                        "function addSubdomainMX(string label, uint256 priority, string value, string _password)",
+                      params: [activeSubdomain, ...params],
+                    });
+                  }
+
+                  return prepareContractCall({
                     contract,
                     method:
                       "function addMX(uint256 priority, string value, string _password)",
-                    params: [
-                      BigInt(newMXRecord.priority),
-                      newMXRecord.value,
-                      newMXRecord.password,
-                    ],
-                  })
-                }
+                    params: [...params],
+                  });
+                }}
                 onTransactionConfirmed={() => {
                   toast.success("MX record added successfully");
                   resetMXForm();
@@ -1025,7 +1478,11 @@ const DNSManagementDashboard: React.FC = () => {
                   toast.error("Failed to add MX record");
                   console.error(error);
                 }}
-                disabled={!newMXRecord.value || !newMXRecord.password}
+                disabled={
+                  !newMXRecord.value ||
+                  !newMXRecord.password ||
+                  (selectedScope === "subdomain" && !activeSubdomain)
+                }
               >
                 Add MX Record
               </TransactionButton>
@@ -1144,20 +1601,31 @@ const DNSManagementDashboard: React.FC = () => {
               </Button>
               <TransactionButton
                 className="flex-1"
-                transaction={() =>
-                  prepareContractCall({
+                transaction={() => {
+                  const params = [
+                    BigInt(newSRVRecord.priority),
+                    BigInt(newSRVRecord.weight),
+                    BigInt(newSRVRecord.port),
+                    newSRVRecord.target,
+                    newSRVRecord.password,
+                  ] as const;
+
+                  if (selectedScope === "subdomain" && activeSubdomain) {
+                    return prepareContractCall({
+                      contract,
+                      method:
+                        "function addSubdomainSRV(string label, uint256 priority, uint256 weight, uint256 port, string target, string _password)",
+                      params: [activeSubdomain, ...params],
+                    });
+                  }
+
+                  return prepareContractCall({
                     contract,
                     method:
                       "function addSRV(uint256 priority, uint256 weight, uint256 port, string target, string _password)",
-                    params: [
-                      BigInt(newSRVRecord.priority),
-                      BigInt(newSRVRecord.weight),
-                      BigInt(newSRVRecord.port),
-                      newSRVRecord.target,
-                      newSRVRecord.password,
-                    ],
-                  })
-                }
+                    params: [...params],
+                  });
+                }}
                 onTransactionConfirmed={() => {
                   toast.success("SRV record added successfully");
                   resetSRVForm();
@@ -1167,7 +1635,11 @@ const DNSManagementDashboard: React.FC = () => {
                   toast.error("Failed to add SRV record");
                   console.error(error);
                 }}
-                disabled={!newSRVRecord.target || !newSRVRecord.password}
+                disabled={
+                  !newSRVRecord.target ||
+                  !newSRVRecord.password ||
+                  (selectedScope === "subdomain" && !activeSubdomain)
+                }
               >
                 Add SRV Record
               </TransactionButton>
@@ -1251,19 +1723,30 @@ const DNSManagementDashboard: React.FC = () => {
               </Button>
               <TransactionButton
                 className="flex-1"
-                transaction={() =>
-                  prepareContractCall({
+                transaction={() => {
+                  const mxParams = [
+                    BigInt(editMXRecord.index),
+                    BigInt(editMXRecord.priority),
+                    editMXRecord.value,
+                    editMXRecord.password,
+                  ] as const;
+
+                  if (selectedScope === "subdomain" && activeSubdomain) {
+                    return prepareContractCall({
+                      contract,
+                      method:
+                        "function updateSubdomainMX(string label, uint256 index, uint256 priority, string value, string _password)",
+                      params: [activeSubdomain, ...mxParams],
+                    });
+                  }
+
+                  return prepareContractCall({
                     contract,
                     method:
                       "function updateMX(uint256 index, uint256 priority, string value, string _password)",
-                    params: [
-                      BigInt(editMXRecord.index),
-                      BigInt(editMXRecord.priority),
-                      editMXRecord.value,
-                      editMXRecord.password,
-                    ],
-                  })
-                }
+                    params: mxParams,
+                  });
+                }}
                 onTransactionConfirmed={() => {
                   toast.success("MX record updated successfully");
                   resetEditMXForm();
@@ -1273,7 +1756,11 @@ const DNSManagementDashboard: React.FC = () => {
                   toast.error("Failed to update MX record");
                   console.error(error);
                 }}
-                disabled={!editMXRecord.value || !editMXRecord.password}
+                disabled={
+                  !editMXRecord.value ||
+                  !editMXRecord.password ||
+                  (selectedScope === "subdomain" && !activeSubdomain)
+                }
               >
                 Update MX Record
               </TransactionButton>
@@ -1407,21 +1894,32 @@ const DNSManagementDashboard: React.FC = () => {
               </Button>
               <TransactionButton
                 className="flex-1"
-                transaction={() =>
-                  prepareContractCall({
+                transaction={() => {
+                  const srvParams = [
+                    BigInt(editSRVRecord.index),
+                    BigInt(editSRVRecord.priority),
+                    BigInt(editSRVRecord.weight),
+                    BigInt(editSRVRecord.port),
+                    editSRVRecord.target,
+                    editSRVRecord.password,
+                  ] as const;
+
+                  if (selectedScope === "subdomain" && activeSubdomain) {
+                    return prepareContractCall({
+                      contract,
+                      method:
+                        "function updateSubdomainSRV(string label, uint256 index, uint256 priority, uint256 weight, uint256 port, string target, string _password)",
+                      params: [activeSubdomain, ...srvParams],
+                    });
+                  }
+
+                  return prepareContractCall({
                     contract,
                     method:
                       "function updateSRV(uint256 index, uint256 priority, uint256 weight, uint256 port, string target, string _password)",
-                    params: [
-                      BigInt(editSRVRecord.index),
-                      BigInt(editSRVRecord.priority),
-                      BigInt(editSRVRecord.weight),
-                      BigInt(editSRVRecord.port),
-                      editSRVRecord.target,
-                      editSRVRecord.password,
-                    ],
-                  })
-                }
+                    params: srvParams,
+                  });
+                }}
                 onTransactionConfirmed={() => {
                   toast.success("SRV record updated successfully");
                   resetEditSRVForm();
@@ -1431,7 +1929,11 @@ const DNSManagementDashboard: React.FC = () => {
                   toast.error("Failed to update SRV record");
                   console.error(error);
                 }}
-                disabled={!editSRVRecord.target || !editSRVRecord.password}
+                disabled={
+                  !editSRVRecord.target ||
+                  !editSRVRecord.password ||
+                  (selectedScope === "subdomain" && !activeSubdomain)
+                }
               >
                 Update SRV Record
               </TransactionButton>
@@ -1549,38 +2051,78 @@ const DNSManagementDashboard: React.FC = () => {
               <TransactionButton
                 className="flex-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
                 transaction={() => {
+                  if (!deleteAlert.record) {
+                    throw new Error("No record selected for deletion");
+                  }
+
                   if (deleteAlert.recordType === "mx") {
+                    const mxParams = [
+                      BigInt(deleteAlert.record.index),
+                      editRecord.password,
+                    ] as const;
+
+                    if (selectedScope === "subdomain" && activeSubdomain) {
+                      return prepareContractCall({
+                        contract,
+                        method:
+                          "function deleteSubdomainMX(string label, uint256 index, string _password)",
+                        params: [activeSubdomain, ...mxParams],
+                      });
+                    }
+
                     return prepareContractCall({
                       contract,
                       method:
                         "function deleteMX(uint256 index, string _password)",
-                      params: [
-                        BigInt(deleteAlert.record!.index),
-                        editRecord.password,
-                      ],
+                      params: mxParams,
                     });
-                  } else if (deleteAlert.recordType === "srv") {
+                  }
+
+                  if (deleteAlert.recordType === "srv") {
+                    const srvParams = [
+                      BigInt(deleteAlert.record.index),
+                      editRecord.password,
+                    ] as const;
+
+                    if (selectedScope === "subdomain" && activeSubdomain) {
+                      return prepareContractCall({
+                        contract,
+                        method:
+                          "function deleteSubdomainSRV(string label, uint256 index, string _password)",
+                        params: [activeSubdomain, ...srvParams],
+                      });
+                    }
+
                     return prepareContractCall({
                       contract,
                       method:
                         "function deleteSRV(uint256 index, string _password)",
-                      params: [
-                        BigInt(deleteAlert.record!.index),
-                        editRecord.password,
-                      ],
+                      params: srvParams,
                     });
-                  } else {
+                  }
+
+                  const record = deleteAlert.record as DNSRecord;
+                  const standardParams = [
+                    record.type,
+                    BigInt(record.index),
+                    editRecord.password,
+                  ] as const;
+
+                  if (selectedScope === "subdomain" && activeSubdomain) {
                     return prepareContractCall({
                       contract,
                       method:
-                        "function deleteRecord(string recordType, uint256 index, string _password)",
-                      params: [
-                        (deleteAlert.record as DNSRecord).type,
-                        BigInt(deleteAlert.record!.index),
-                        editRecord.password,
-                      ],
+                        "function deleteSubdomainRecord(string label, string recordType, uint256 index, string _password)",
+                      params: [activeSubdomain, ...standardParams],
                     });
                   }
+
+                  return prepareContractCall({
+                    contract,
+                    method:
+                      "function deleteRecord(string recordType, uint256 index, string _password)",
+                    params: standardParams,
+                  });
                 }}
                 onTransactionConfirmed={() => {
                   toast.success("DNS record deleted successfully");
@@ -1596,7 +2138,10 @@ const DNSManagementDashboard: React.FC = () => {
                   toast.error("Failed to delete DNS record");
                   console.error(error);
                 }}
-                disabled={!editRecord.password}
+                disabled={
+                  !editRecord.password ||
+                  (selectedScope === "subdomain" && !activeSubdomain)
+                }
               >
                 Delete Record
               </TransactionButton>

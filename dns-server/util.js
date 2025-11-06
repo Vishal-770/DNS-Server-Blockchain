@@ -18,6 +18,50 @@ const contract = getContract({
 
 export default contract;
 
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
+async function findDomainTarget(domain) {
+  const labels = domain.split(".");
+
+  for (let i = 0; i < labels.length; i++) {
+    const candidateLabels = labels.slice(i);
+    if (candidateLabels.length === 0) {
+      continue;
+    }
+
+    const candidate = candidateLabels.join(".");
+
+    if (!candidate.includes(".")) {
+      // Ignore bare TLDs when searching for base domain contracts
+      continue;
+    }
+
+    try {
+      const address = await readContract({
+        contract,
+        method:
+          "function getDomainContract(string domainName) view returns (address)",
+        params: [candidate],
+      });
+
+      if (address && address !== ZERO_ADDRESS) {
+        const subdomainLabel = labels.slice(0, i).join(".");
+        return {
+          contractAddress: address,
+          baseDomain: candidate,
+          subdomainLabel: subdomainLabel.length ? subdomainLabel : null,
+        };
+      }
+    } catch (lookupError) {
+      console.warn(
+        `⚠️ Failed domain lookup for ${candidate}: ${lookupError.message}`
+      );
+    }
+  }
+
+  return null;
+}
+
 /**
  * Convert DNS type number to string
  * @param {number} typeNum - DNS type number
@@ -108,61 +152,83 @@ export async function getDomainIP(domain, type) {
   }
 
   try {
-    // Step 1: Look up domain contract from factory
+    // Step 1: Resolve domain contract and subdomain context
     console.log(`Looking up domain contract for: ${domain}`);
-    const data = await readContract({
-      contract,
-      method:
-        "function getDomainContract(string domainName) view returns (address)",
-      params: [domain],
-    });
+    const target = await findDomainTarget(domain);
 
-    if (!data || data === "0x0000000000000000000000000000000000000000") {
+    if (!target) {
       throw new Error(`Domain not found in blockchain: ${domain}`);
     }
 
-    console.log(`Found domain contract at: ${data}`);
+    const {
+      contractAddress: resolvedAddress,
+      baseDomain,
+      subdomainLabel,
+    } = target;
+
+    console.log(
+      `Found domain contract at: ${resolvedAddress} (base: ${baseDomain}${
+        subdomainLabel ? `, subdomain: ${subdomainLabel}` : ""
+      })`
+    );
 
     // Step 2: Load domain contract
     const domainContract = getContract({
       client,
       chain: sepolia,
-      address: data,
+      address: resolvedAddress,
     });
 
     // Step 3: Handle record type
     let result;
 
+    const isSubdomain = Boolean(subdomainLabel);
+    const targetDescriptor = isSubdomain
+      ? `${subdomainLabel}.${baseDomain}`
+      : baseDomain;
+
     if (["A", "AAAA", "CNAME", "TXT", "NS"].includes(typeString)) {
-      // Simple string[] record
-      console.log(`Fetching ${typeString} records for ${domain}`);
+      const method = isSubdomain
+        ? "function getSubdomainRecord(string label, string recordType) view returns (string[])"
+        : "function getRecord(string recordType) view returns (string[])";
+      const params = isSubdomain ? [subdomainLabel, typeString] : [typeString];
+
+      console.log(`Fetching ${typeString} records for ${targetDescriptor}`);
       result = await readContract({
         contract: domainContract,
-        method: "function getRecord(string recordType) view returns (string[])",
-        params: [typeString],
+        method,
+        params,
       });
     } else if (typeString === "MX") {
-      // MX record → array of (priority, value)
-      console.log(`Fetching MX records for ${domain}`);
+      const method = isSubdomain
+        ? "function getSubdomainMX(string label) view returns ((uint256 priority, string value)[])"
+        : "function getMX() view returns ((uint256 priority, string value)[])";
+      const params = isSubdomain ? [subdomainLabel] : [];
+
+      console.log(`Fetching MX records for ${targetDescriptor}`);
       result = await readContract({
         contract: domainContract,
-        method:
-          "function getMX() view returns ((uint256 priority, string value)[])",
-        params: [],
+        method,
+        params,
       });
     } else if (typeString === "SRV") {
-      // SRV record → array of (priority, weight, port, target)
-      console.log(`Fetching SRV records for ${domain}`);
+      const method = isSubdomain
+        ? "function getSubdomainSRV(string label) view returns ((uint256 priority, uint256 weight, uint256 port, string target)[])"
+        : "function getSRV() view returns ((uint256 priority, uint256 weight, uint256 port, string target)[])";
+      const params = isSubdomain ? [subdomainLabel] : [];
+
+      console.log(`Fetching SRV records for ${targetDescriptor}`);
       result = await readContract({
         contract: domainContract,
-        method:
-          "function getSRV() view returns ((uint256 priority, uint256 weight, uint256 port, string target)[])",
-        params: [],
+        method,
+        params,
       });
     }
 
     console.log(
-      `Retrieved ${result?.length || 0} records for ${domain} (${typeString})`
+      `Retrieved ${
+        result?.length || 0
+      } record(s) for ${targetDescriptor} (${typeString})`
     );
 
     const normalized = normalizeRecords(typeString, result || []);

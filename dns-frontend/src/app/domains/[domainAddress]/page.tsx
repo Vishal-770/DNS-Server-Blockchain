@@ -2,7 +2,7 @@
 
 import client from "@/app/client";
 import { useParams } from "next/navigation";
-import React from "react";
+import React, { useMemo } from "react";
 import { getContract } from "thirdweb";
 import { sepolia } from "thirdweb/chains";
 import { useReadContract } from "thirdweb/react";
@@ -27,10 +27,11 @@ import { toast } from "sonner";
 
 const DomainPage: React.FC = () => {
   const { domainAddress } = useParams();
+  const resolvedDomain = domainAddress as string;
 
   const contract = getContract({
     client,
-    address: domainAddress as string,
+    address: resolvedDomain,
     chain: sepolia,
   });
 
@@ -81,6 +82,19 @@ const DomainPage: React.FC = () => {
     params: [],
   });
 
+  const { data: subdomains, isPending: subdomainPending } = useReadContract({
+    contract,
+    method: "function listSubdomains() view returns (string[])",
+    params: [],
+  });
+
+  const subdomainList = useMemo(
+    () => (Array.isArray(subdomains) ? (subdomains as string[]) : []),
+    [subdomains]
+  );
+
+  const hasSubdomains = subdomainList.length > 0;
+
   const isLoading =
     aPending ||
     nsPending ||
@@ -88,7 +102,8 @@ const DomainPage: React.FC = () => {
     aaaaPending ||
     cnamePending ||
     mxPending ||
-    srvPending;
+    srvPending ||
+    subdomainPending;
 
   if (isLoading) {
     return (
@@ -103,7 +118,7 @@ const DomainPage: React.FC = () => {
             subtitle={
               <span>
                 DNS records for:{" "}
-                <span className="font-mono text-primary">{domainAddress}</span>
+                <span className="font-mono text-primary">{resolvedDomain}</span>
               </span>
             }
             showBackButton
@@ -201,7 +216,7 @@ const DomainPage: React.FC = () => {
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(domainAddress as string);
+      await navigator.clipboard.writeText(resolvedDomain);
       toast.success("Contract address copied");
     } catch (error) {
       console.error(error);
@@ -217,13 +232,13 @@ const DomainPage: React.FC = () => {
           subtitle={
             <span>
               DNS records for:{" "}
-              <span className="font-mono text-primary">{domainAddress}</span>
+              <span className="font-mono text-primary">{resolvedDomain}</span>
             </span>
           }
           showBackButton
           backHref="/user"
         >
-          <Link href={`/domains/${domainAddress}/manage`}>
+          <Link href={`/domains/${resolvedDomain}/manage`}>
             <Button className="flex items-center gap-2 shadow-lg hover:shadow-xl transition-all duration-200 w-full sm:w-auto">
               <Settings className="h-4 w-4" />
               Manage Records
@@ -236,7 +251,7 @@ const DomainPage: React.FC = () => {
             <CardHeader className="pb-4">
               <CardTitle className="flex flex-wrap items-center gap-3 text-lg">
                 <Globe className="h-5 w-5 text-primary" />
-                <span className="font-semibold">{domainAddress}</span>
+                <span className="font-semibold">{resolvedDomain}</span>
                 <Badge variant="secondary" className="rounded-full px-3 py-1">
                   {totalRecords} {totalRecords === 1 ? "record" : "records"}
                 </Badge>
@@ -257,7 +272,7 @@ const DomainPage: React.FC = () => {
                 <Copy className="h-4 w-4" />
                 Copy contract address
               </Button>
-              <Link href={`/domains/${domainAddress}/manage`}>
+              <Link href={`/domains/${resolvedDomain}/manage`}>
                 <Button
                   variant="ghost"
                   className="flex items-center gap-2 text-muted-foreground"
@@ -266,6 +281,13 @@ const DomainPage: React.FC = () => {
                   Edit records
                 </Button>
               </Link>
+              <Badge variant="outline" className="ml-auto rounded-full px-3">
+                {hasSubdomains
+                  ? `${subdomainList.length} subdomain${
+                      subdomainList.length === 1 ? "" : "s"
+                    }`
+                  : "No subdomains"}
+              </Badge>
             </CardContent>
           </Card>
 
@@ -288,6 +310,65 @@ const DomainPage: React.FC = () => {
             </CardContent>
           </Card>
         </div>
+
+        <Card className="border shadow-md mb-8">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Sparkles className="h-4 w-4 text-primary" />
+              Subdomains
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {hasSubdomains ? (
+              <div className="space-y-3">
+                {subdomainList.map((label) => {
+                  const fqdn = `${label}.${resolvedDomain}`;
+                  return (
+                    <div
+                      key={label}
+                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 border rounded-lg bg-muted/40"
+                    >
+                      <div>
+                        <p className="font-semibold text-foreground">{fqdn}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Manage delegated records for this subdomain.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant="secondary"
+                          className="rounded-full px-3"
+                        >
+                          Active
+                        </Badge>
+                        <Link
+                          href={`/domains/${resolvedDomain}/manage?sub=${label}`}
+                        >
+                          <Button variant="outline" size="sm">
+                            Configure
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="p-6 text-center text-muted-foreground space-y-2">
+                <p>
+                  No subdomains yet. Use the management panel to create your
+                  first subdomain and delegate records.
+                </p>
+                <p>
+                  Example:{" "}
+                  <span className="font-mono text-foreground">
+                    {`blog.${resolvedDomain}`}
+                  </span>
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 mb-8">
           {recordDefinitions.map((record, index) => (
@@ -344,7 +425,7 @@ const DomainPage: React.FC = () => {
             <p className="text-muted-foreground mb-6">
               This domain doesn&apos;t have any DNS records configured yet.
             </p>
-            <Link href={`/domains/${domainAddress}/manage`}>
+            <Link href={`/domains/${resolvedDomain}/manage`}>
               <Button>
                 <Settings className="h-4 w-4 mr-2" />
                 Set Up DNS Records
