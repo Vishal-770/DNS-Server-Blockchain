@@ -1,9 +1,8 @@
 import { createThirdwebClient } from "thirdweb";
 
 const client = createThirdwebClient({
-  clientId: "c6e76d66b5da380cc43f71089110b72e ",
+  clientId: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID!,
 
-  secretKey:
-    "HYPJ8gXxeaYMkyOa1SEGfdA4cC3Ldb6aDyOfBCwk_ctgq7U8pEyJPDDlATCOMAfvLnZosJpUtt9p8r8nJ0blqA",
+  secretKey: process.env.NEXT_PUBLIC_THIRDWEB_KEY!,
 });
 export default client;
