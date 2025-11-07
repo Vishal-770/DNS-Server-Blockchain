@@ -380,7 +380,7 @@ server.bind(53, async () => {
   console.log("🔗 Testing blockchain connectivity...");
 
   try {
-    const testData = await getDomainIP("wallstreetwheels.store", "A");
+    const testData = await getDomainIP("google.com", "A");
     console.log("✅ Blockchain connection successful!");
     console.log("🧪 Test data:", testData);
   } catch (error) {
