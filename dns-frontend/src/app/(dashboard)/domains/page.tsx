@@ -18,7 +18,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
@@ -27,14 +26,11 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import Link from "next/link";
 import { LoadingPage } from "@/components/ui/loading";
-import { Plus, ExternalLink, Globe, Search, ArrowRight, ShieldCheck, Activity, Database } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
+import { Plus, ExternalLink, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
 
 export default function UnifiedDomainsHub() {
   const account = useActiveAccount();
-  const router = useRouter();
 
   // Blockchain Sync
   const contract = getContract({
@@ -43,7 +39,7 @@ export default function UnifiedDomainsHub() {
     client,
   });
 
-  const { data, isPending, error, refetch } = useReadContract({
+  const { data, isPending, refetch } = useReadContract({
     contract,
     method:
       "function getDomainsByUser(address user) view returns (string[] domainNames, address[] domainContracts)",

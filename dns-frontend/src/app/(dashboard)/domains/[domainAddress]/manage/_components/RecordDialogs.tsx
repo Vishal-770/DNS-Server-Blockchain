@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -128,12 +128,8 @@ export const AddRecordDialog: React.FC<ScopedDialogProps> = ({ isOpen, onClose, 
     mode: "onChange",
   });
 
-  const { register, handleSubmit, formState: { errors, isValid }, watch, setValue } = form;
+  const { register, formState: { errors, isValid }, watch, setValue } = form;
   const currentType = watch("type");
-
-  const onSubmit = () => {
-    // RHF handleSubmit will only call this if valid
-  };
 
   const handleClose = () => {
     form.reset();
@@ -635,7 +631,8 @@ export const DeleteRecordDialog: React.FC<ScopedDialogProps & { record: RecordDa
             transaction={async () => {
               const password = form.getValues("password");
               if (recordType === "mx") {
-                const params = [BigInt((record as any).index), password] as const;
+                const mxRecord = record as MXRecord;
+                const params = [BigInt(mxRecord.index), password] as const;
                 if (selectedScope === "subdomain" && activeSubdomain) {
                   return prepareContractCall({
                     contract,
@@ -650,7 +647,8 @@ export const DeleteRecordDialog: React.FC<ScopedDialogProps & { record: RecordDa
                 });
               }
               if (recordType === "srv") {
-                const params = [BigInt((record as any).index), password] as const;
+                const srvRecord = record as SRVRecord;
+                const params = [BigInt(srvRecord.index), password] as const;
                 if (selectedScope === "subdomain" && activeSubdomain) {
                   return prepareContractCall({
                     contract,

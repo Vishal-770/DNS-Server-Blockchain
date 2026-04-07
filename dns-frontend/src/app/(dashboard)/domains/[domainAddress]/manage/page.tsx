@@ -347,7 +347,7 @@ const DNSManagementDashboard: React.FC = () => {
     refetchSubdomains();
   };
 
-  const parseStandardRecords = (data: any, type: string) => {
+  const parseStandardRecords = (data: readonly string[] | undefined, type: string) => {
     if (!data || !Array.isArray(data)) return [];
     return data.map((val: string, idx: number) => ({
       type,
@@ -356,18 +356,18 @@ const DNSManagementDashboard: React.FC = () => {
     }));
   };
 
-  const parseMXRecords = (data: any) => {
+  const parseMXRecords = (data: readonly (readonly [bigint, string])[] | undefined) => {
     if (!data || !Array.isArray(data)) return [];
-    return data.map((item: any, idx: number) => ({
+    return data.map((item: readonly [bigint, string], idx: number) => ({
       priority: Number(item[0]),
       value: item[1],
       index: idx,
     }));
   };
 
-  const parseSRVRecords = (data: any) => {
+  const parseSRVRecords = (data: readonly (readonly [bigint, bigint, bigint, string])[] | undefined) => {
     if (!data || !Array.isArray(data)) return [];
-    return data.map((item: any, idx: number) => ({
+    return data.map((item: readonly [bigint, bigint, bigint, string], idx: number) => ({
       priority: Number(item[0]),
       weight: Number(item[1]),
       port: Number(item[2]),

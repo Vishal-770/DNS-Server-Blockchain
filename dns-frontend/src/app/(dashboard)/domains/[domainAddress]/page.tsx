@@ -20,7 +20,6 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { LoadingCard, LoadingSkeleton } from "@/components/ui/loading";
 import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 const DomainPage: React.FC = () => {
