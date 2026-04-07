@@ -5,18 +5,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
   ChevronLeft, 
-  ChevronRight, 
   LayoutDashboard, 
   Globe, 
-  Settings, 
   Terminal, 
-  ShieldCheck, 
-  Activity,
-  History,
-  Lock,
-  PlusCircle,
-  HelpCircle,
-  ExternalLink,
   Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -37,8 +28,6 @@ interface NavItem {
 const mainNav: NavItem[] = [
   { id: "overview", name: "Overview", href: "/domains", icon: LayoutDashboard },
 ];
-
-const secondaryNav: NavItem[] = [];
 
 export function DashboardSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);

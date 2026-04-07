@@ -4,7 +4,7 @@ import React from "react";
 import { ConnectButton } from "thirdweb/react";
 import client from "@/app/client";
 import { ModeToggle } from "@/components/ModeToggle";
-import { Bell, Search, User } from "lucide-react";
+import { Bell, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
